@@ -5,3 +5,4 @@ VERSION 0.0.1
 * Double check the data unit
 * Fix the ppg_clean method not working issue
 * Add pip install neurokit2 into Dockerfile
+* Remove unnecessary files in the project
