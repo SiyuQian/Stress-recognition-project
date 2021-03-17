@@ -40,6 +40,7 @@ def random_xsum(request):
 def neurokit_index(request):
     data = pd.read_csv("https://raw.githubusercontent.com/SiyuQian/django-docker/master/712AF22B_Mar11_14-07-59.csv");
     # Generate 15 seconds of PPG signal (recorded at 250 samples / second)
+    # 130
     # ppg = nk.ppg_simulate(duration=15, sampling_rate=250, heart_rate=70)
     # signals, info = nk.ppg_process(data['PPG'], sampling_rate=50)
 
