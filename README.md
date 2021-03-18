@@ -22,10 +22,10 @@ For now, we only have limted devices: Some phones(Samsung Galaxy A01 with Androi
 Therefore, based on these things, we try to use PPG data from the watch to calculate the HRV data. It is not easy to process PPG data, but we found Neurokit2 kit[7] can be used to get the HRV data by processing PPG data. Then, we can use this HRV data to analyse the stress level.
 
 ## Reference
-1.https://en.wikipedia.org/wiki/Phishing#:~:text=Phishing%20is%20the%20fraudulent%20attempt,entity%20in%20a%20digital%20communication.
-2.https://www.news-medical.net/health/Photoplethysmography-(PPG).aspx#:~:text=Photoplethysmography%20(PPG)%20is%20a%20simple,related%20to%20our%20cardiovascular%20system.
-3.https://www.whoop.com/thelocker/heart-rate-variability-hrv/#:~:text=Heart%20rate%20variability%20is%20literally,1.15%20seconds%20between%20two%20others.
-4.Huynh, S., Balan, R. K., Ko, J., & Lee, Y. (2019, November). VitaMon: Measuring heart rate variability using smartphone front camera. In Proceedings of the 17th Conference on Embedded Networked Sensor Systems (pp. 1-14).
-5.McDuff, D., Gontarek, S., & Picard, R. (2014, August). Remote measurement of cognitive stress via heart rate variability. In 2014 36th Annual International Conference of the IEEE Engineering in Medicine and Biology Society (pp. 2957-2960). IEEE.
+1.https://en.wikipedia.org/wiki/Phishing#:~:text=Phishing%20is%20the%20fraudulent%20attempt,entity%20in%20a%20digital%20communication.  
+2.https://www.news-medical.net/health/Photoplethysmography-(PPG).aspx#:~:text=Photoplethysmography%20(PPG)%20is%20a%20simple,related%20to%20our%20cardiovascular%20system.    
+3.https://www.whoop.com/thelocker/heart-rate-variability-hrv/#:~:text=Heart%20rate%20variability%20is%20literally,1.15%20seconds%20between%20two%20others.  
+4.Huynh, S., Balan, R. K., Ko, J., & Lee, Y. (2019, November). VitaMon: Measuring heart rate variability using smartphone front camera. In Proceedings of the 17th Conference on Embedded Networked Sensor Systems (pp. 1-14).  
+5.McDuff, D., Gontarek, S., & Picard, R. (2014, August). Remote measurement of cognitive stress via heart rate variability. In 2014 36th Annual International Conference of the IEEE Engineering in Medicine and Biology Society (pp. 2957-2960). IEEE.  
 6.https://www.polar.com/en/products/accessories/oh1-optical-heart-rate-sensor
 7.https://neurokit2.readthedocs.io/en/latest/functions.html#neurokit2.hrv 
