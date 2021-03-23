@@ -24,6 +24,19 @@ For now, we only have limted devices: Some phones(Samsung Galaxy A01 with Androi
 
 Therefore, based on these things, we try to use PPG data from the watch to calculate the HRV data. It is not easy to process PPG data, but we found Neurokit2 kit[7] can be used to get the HRV data by processing PPG data. Then, we can use this HRV data to analyse the stress level.
 
+## Run the Android App
+Firstly, Open the client in the Android App, and run it on the real android app like our test phone(Samsung Galaxy A01).
+After downloaded the application on the phone, make sure the permission of all things is opened, buletooth of the phone is opened.
+Then, you need to wear the watch(OHR Sensor POL OH1 Plus Blk) and open it, if you do not konw how to wear the watch, please see [this](https://www.polar.com/en/products/accessories/oh1-optical-heart-rate-sensor). 
+Finally, connect the watch to the app that we already downloaded, click the 'start recording' button and it will run successfully. 
+
+## Run the server
+## Getting start with Docker
+This project was bootstrapped with [Docker](https://www.docker.com/get-started).
+## Available Scripts
+In the project directory, you can run:
+### `docker-compose -f docker-compose.yml up` in the server file
+
 ## Reference
 1.https://en.wikipedia.org/wiki/Phishing#:~:text=Phishing%20is%20the%20fraudulent%20attempt,entity%20in%20a%20digital%20communication.  
 2.https://www.news-medical.net/health/Photoplethysmography-(PPG).aspx#:~:text=Photoplethysmography%20(PPG)%20is%20a%20simple,related%20to%20our%20cardiovascular%20system.    
