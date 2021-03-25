@@ -5,6 +5,8 @@ import neurokit2 as nk
 import pandas as pd
 import json
 
+from django.views.decorators.csrf import csrf_exempt
+
 
 def index(request):
     context = {}
@@ -35,6 +37,12 @@ def random_xsum(request):
     tasks.xsum.delay(array)
     context = {'function_detail': 'xsum({})'.format(array)}
     return render(request, 'demoapp/celery_detail.html', context)
+
+@csrf_exempt
+def test_index(request):
+    body_unicode = request.body.decode('utf-8')
+    context = { 'method': request.method, 'body': body_unicode }
+    return render(request, 'test/index.html', context)
 
 
 def neurokit_index(request):
