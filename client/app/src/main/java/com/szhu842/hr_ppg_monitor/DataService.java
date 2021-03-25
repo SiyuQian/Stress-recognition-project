@@ -21,8 +21,18 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.opencsv.CSVWriter;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.reactivestreams.Publisher;
 
 import java.io.File;
@@ -31,8 +41,10 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
@@ -335,7 +347,9 @@ public class DataService extends Service {
                                     sendBroadcast(intent);
                                      if (sent) {
                                         writeToCsv();
-                                    }
+                                        postRequest();
+
+                                     }
                                 }
                             },
                             throwable -> {
@@ -351,6 +365,61 @@ public class DataService extends Service {
             ppgDisposable.dispose();
             ppgDisposable = null;
         }
+    }
+
+
+    private void postRequest() {
+        RequestQueue requestQueue= Volley.newRequestQueue(DataService.this);
+        String url="https://reqres.in/api/users"; // change the url
+
+
+        long timeMillis = System.currentTimeMillis();
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss:SSS", Locale.ENGLISH);
+        Date resultdate = new Date(timeMillis);
+        String timeDate = sdf.format(resultdate) + "";
+        long resulttime = timeMillis - startTime;
+        int seconds = (int) (resulttime / 1000) % 60 ;
+        int minutes = (int) ((resulttime / (1000*60)) % 60);
+        int hours   = (int) ((resulttime / (1000*60*60)) % 24);
+        String time = hours + ":" + minutes + ":" + seconds + ":" + (resulttime%1000);
+        List<String[]> data = new ArrayList<String[]>();
+        data.add(new String[]{deviceName, timeDate, time, String.valueOf(ppgData),
+                String.valueOf(hr)});
+
+        Log.d(deviceName,"deviceName");
+        Log.d(timeDate,"timeDate");
+        Log.d(time,"time");
+        Log.d(String.valueOf(ppgData),"ppgData");
+        Log.d(String.valueOf(hr),"hr");
+
+        JSONObject postData = new JSONObject();
+        try {
+//            postData.put("deviceName", deviceName);
+//            postData.put("timeDate",timeDate);
+//            postData.put("time",time);
+//            postData.put("ppgData", String.valueOf(ppgData));
+//            postData.put("hr",String.valueOf(hr));
+            postData.put("name", "Jonathan");
+            postData.put("job", "Software Engineer");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        JsonObjectRequest jsonObjectRequest=new JsonObjectRequest(Request.Method.POST, url,postData, new Response.Listener<JSONObject>() {
+
+            @Override
+            public void onResponse(JSONObject response) {
+                System.out.println(response);
+            }
+
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("RESP", "onResponse: " + error);
+
+            }
+        });
+        requestQueue.add(jsonObjectRequest);
+
     }
 
     public void streamACC() {
