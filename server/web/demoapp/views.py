@@ -1,22 +1,19 @@
 import random
 from django.shortcuts import render
 from . import tasks
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 import neurokit2 as nk
 import pandas as pd
 import json
-
-from django.views.decorators.csrf import csrf_exempt
-
 
 def index(request):
     context = {}
     return render(request, 'demoapp/index.html', context)
 
-
 def celery_index(request):
     context = {}
     return render(request, 'demoapp/celery_index.html', context)
-
 
 def random_add(request):
     a, b = random.choices(range(100), k=2)
@@ -24,13 +21,11 @@ def random_add(request):
     context = {'function_detail': 'add({}, {})'.format(a, b)}
     return render(request, 'demoapp/celery_detail.html', context)
 
-
 def random_mul(request):
     a, b = random.choices(range(100), k=2)
     tasks.mul.delay(a, b)
     context = {'function_detail': 'mul({}, {})'.format(a, b)}
     return render(request, 'demoapp/celery_detail.html', context)
-
 
 def random_xsum(request):
     array = random.choices(range(100), k=random.randint(1, 10))
@@ -44,9 +39,38 @@ def test_index(request):
     context = { 'method': request.method, 'body': body_unicode }
     return render(request, 'test/index.html', context)
 
+@csrf_exempt
+def stress_index(request):
+    # success HTTP status code as default value
+    status_code = 200;
+    # Validate the request
+    if (request.method != 'POST') :
+        status_code = 400
+        body = {
+            'statusCode': status_code,
+            'status': 'error',
+            'response': 'Bad request! This API endpoint only handles POST request.',
+        }
 
-def neurokit_index(request):
-    data = pd.read_csv("https://raw.githubusercontent.com/SiyuQian/django-docker/master/712AF22B_Mar11_14-07-59.csv");
+        return JsonResponse(body, status = status_code)
+
+    # Handle the request from the client-end
+    body_unicode = request.body.decode('utf-8')
+
+    # validate if the request body is in JSON format
+    try:
+        body = json.loads(body_unicode)
+    except Exception as e:
+        status_code = 400
+        body = {
+            'statusCode': status_code,
+            'status': 'error',
+            'response': 'Bad request! The request data have to be in a valid JSON format.',
+        }
+
+    # @todo: implement actual logic to detect the stress by process the requests from the client end constantly
+
+    # data = pd.read_csv("https://raw.githubusercontent.com/SiyuQian/django-docker/master/712AF22B_Mar11_14-07-59.csv");
     # Generate 15 seconds of PPG signal (recorded at 250 samples / second)
     # 130
     # ppg = nk.ppg_simulate(duration=15, sampling_rate=250, heart_rate=70)
@@ -56,11 +80,16 @@ def neurokit_index(request):
     # ppg_clean = nk.ppg_clean(signals)
 
     # Peaks
-    peaks = nk.ppg_findpeaks(data['PPG'].div(1000000).to_numpy(), sampling_rate=100)
+    # peaks = nk.ppg_findpeaks(data['PPG'].div(1000000).to_numpy(), sampling_rate=100)
 
     # Compute HRV indices
-    hrv_indices = nk.hrv(peaks, sampling_rate=100, show=True)
-    result = hrv_indices.to_json()
-    parsed = json.loads(result)
-    context = {'response' : json.dumps(parsed)}
-    return render(request, 'neurokit/neurokit_index.html', context)
+    # hrv_indices = nk.hrv(peaks, sampling_rate=100, show=True)
+    # result = hrv_indices.to_json()
+    # parsed = json.loads(result)
+    # context = {'response' : json.dumps(parsed), 'post': body}
+    body = {
+        'statusCode': status_code,
+        'status': 'success',
+        'response': body
+    }
+    return JsonResponse(body, status = status_code)
