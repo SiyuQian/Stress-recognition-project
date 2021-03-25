@@ -46,12 +46,12 @@ services:
       - mysql
       - redis
 
-  celery:
-    build: .
-    command: celery -A web worker -l info
-    working_dir: /code/web
-    volumes:
-      - .:/code
-    depends_on:
-      - mysql
-      - redis
+  # celery:
+  #   build: .
+  #   command: celery -A web worker -l info
+  #   working_dir: /code/web
+  #   volumes:
+  #     - .:/code
+  #   depends_on:
+  #     - mysql
+  #     - redis

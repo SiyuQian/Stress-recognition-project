@@ -3,3 +3,4 @@
  uwsgi
  celery
  redis
+ neurokit2
