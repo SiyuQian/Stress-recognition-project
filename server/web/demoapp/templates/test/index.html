@@ -1,0 +1,23 @@
+<style>
+	pre {
+		max-width: 700px;
+    	white-space: pre-wrap;
+    	white-space: -moz-pre-wrap;
+    	white-space: -pre-wrap;
+    	white-space: -o-pre-wrap;
+    	word-wrap: break-word;
+	}
+</style>
+
+<strong>Header:</strong> {{ request.headers.user_agent }}
+<br />
+<strong>Method: </strong>{{ method }}
+<br />
+<strong>Accept:</strong> {{ request.headers.accept }}
+<br />
+<strong>Accept-Encoding: </strong> {{ request.headers.accept_encoding }}
+<br />
+<strong>Body:</strong> {{ body }}
+<br />
+<strong>Full request info:</strong>
+<pre>{{ request.headers }}</pre>
