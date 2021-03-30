@@ -1,8 +1,8 @@
-# Phishing Avoidance Project 🏰
+# Stress detection project 🏰
 An Android application and a Stress recognition API combination to practice the research about phishing avoidance with general devices.  (by processing the PPG data sent from the client-side)
 
 ## Workflow Chart
-![workflow](https://user-images.githubusercontent.com/24470452/111409486-ea615680-873b-11eb-900e-efc6afdabfe3.png)
+![workflow](https://user-images.githubusercontent.com/73207848/112559805-a1458c80-8e36-11eb-920c-f79bccb1024b.png)
 
 ## Terminologies
 Phishing: Phishing is the fraudulent attempt to obtain sensitive information or data, such as usernames, passwords and credit card details or other sensitive details, by impersonating oneself as a trustworthy entity in a digital communication. (From [Wikipedia](https://en.wikipedia.org/wiki/Phishing#:~:text=Phishing%20is%20the%20fraudulent%20attempt,entity%20in%20a%20digital%20communication.))[1]
