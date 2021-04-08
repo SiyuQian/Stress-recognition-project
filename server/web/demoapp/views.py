@@ -2,6 +2,7 @@ from django.shortcuts import render
 from . import tasks
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from demoapp.models import Request
 import neurokit2 as nk
 import pandas as pd
 import json
@@ -45,6 +46,9 @@ def stress_index(request):
             'response': 'Bad request! The request data have to be in a valid JSON format.',
         }
 
+    request = Request()
+    request.request_body = body
+    request.save()
     # @todo: implement actual logic to detect the stress by process the requests from the client end constantly
 
     # data = pd.read_csv("https://raw.githubusercontent.com/SiyuQian/django-docker/master/712AF22B_Mar11_14-07-59.csv");

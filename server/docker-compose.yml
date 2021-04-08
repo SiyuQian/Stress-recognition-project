@@ -46,6 +46,20 @@ services:
       - mysql
       - redis
 
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - 8080:80
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+    links:
+      - mysql
+    depends_on:
+      - mysql
+
   # celery:
   #   build: .
   #   command: celery -A web worker -l info
