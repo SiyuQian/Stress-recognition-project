@@ -21,10 +21,17 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import polar.com.sdk.api.PolarBleApi;
@@ -37,7 +44,7 @@ public class DataCollector extends AppCompatActivity {
     private String DEVICE_ID;
     private String device_name;
     private static DataCollector instance;
-
+    public long startTime;
     private boolean update = false;
 
     public TextView deviceIDText;
@@ -47,6 +54,7 @@ public class DataCollector extends AppCompatActivity {
     private Button stopServiceBtn;
 
     private DataService dataService;
+    private int counter;
 //    private Intent serviceIntent;
 
 //    private boolean mBound = false;
@@ -58,7 +66,6 @@ public class DataCollector extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data_visualisation);
         DEVICE_ID = getIntent().getStringExtra("id");
-
         deviceIDText = findViewById(R.id.deviceIDText);
         batteryText = findViewById(R.id.batteryText);
         PPGText = findViewById(R.id.ppgText);
@@ -165,6 +172,7 @@ public class DataCollector extends AppCompatActivity {
     }
 
 
+
     private boolean isMyServiceRunning(Class<?> serviceClass) {
         ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
@@ -190,8 +198,10 @@ public class DataCollector extends AppCompatActivity {
                         batteryText.setText("Battery: " + intent.getStringExtra("battery") + "%");
                     }
                     if (intent.getStringExtra("ppg") != null) {
-                        PPGText.setText("PPG: " + intent.getStringExtra("ppg"));
+                        PPGText.setText("Collecting");
+//                        PPGText.setText("PPG: " + intent.getStringExtra("ppg"));
                     }
+
                     if (intent.getStringExtra("buttonState") != null) {
                         if (intent.getStringExtra("buttonState").equals("true")) {
                             recordDataBtn.setText("Stop Recording");

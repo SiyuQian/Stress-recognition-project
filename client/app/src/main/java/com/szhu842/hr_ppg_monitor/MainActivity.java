@@ -78,7 +78,6 @@ public class MainActivity extends AppCompatActivity {
                         SharedPreferences.Editor editor = sharedPref.edit();
                         editor.putString("deviceID",b.getAddress());
                         editor.apply();
-
                         Toast.makeText(MainActivity.this,"Connecting to device" + b.getAddress(),Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(MainActivity.this, DataCollector.class);
                         intent.putExtra("id", b.getAddress());
