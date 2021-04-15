@@ -2,7 +2,7 @@ from django.shortcuts import render
 from . import tasks
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from demoapp.models import Request, Response
+from demoapp.models import Request, Response, Uuid
 import neurokit2 as nk
 import pandas as pd
 import json
@@ -18,9 +18,55 @@ def test_index(request):
     return render(request, 'test/index.html', context)
 
 @csrf_exempt
+def uuid_index(request):
+    status_code = 200
+    if (request.method != 'POST') :
+        status_code = 400
+        body = {
+            'statusCode': status_code,
+            'status': 'error',
+            'response': 'Bad request! This API endpoint only handles POST request.',
+        }
+
+        return JsonResponse(body, status = status_code)
+    body_unicode = request.body.decode('utf-8')
+
+    # validate if the request body is in JSON format
+    try:
+        # { "uuid": "33d84b2a-9e39-11eb-a8b3-0242ac130003" }
+        body = json.loads(body_unicode)
+    except Exception as e:
+        status_code = 400
+        body = {
+            'statusCode': status_code,
+            'status': 'error',
+            'response': 'Bad request! The request data have to be in a valid JSON format.',
+        }
+        return JsonResponse(body, status = status_code)
+
+    uuid = Uuid.objects.filter(uuid=body['uuid'])
+    if uuid.count() == 0 :
+        uuid = Uuid(uuid=body['uuid'])
+        uuid.save()
+
+        body = {
+            'statusCode': status_code,
+            'status': 'success',
+            'response': 'The UUID is vaild.'
+        }
+    else:
+        body = {
+            'statusCode': status_code,
+            'status': 'error',
+            'response': 'The UUID already existed.'
+        }
+
+    return JsonResponse(body, status = status_code)
+
+@csrf_exempt
 def stress_index(request):
     # success HTTP status code as default value
-    status_code = 200;
+    status_code = 200
     # Validate the request
     if (request.method != 'POST') :
         status_code = 400
