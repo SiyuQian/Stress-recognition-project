@@ -6,3 +6,8 @@ from django.db.models import JSONField
 class Request(models.Model):
 	request_body = models.JSONField()
 	created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Response(models.Model):
+	response_body = models.JSONField()
+	created_at = models.DateTimeField(auto_now_add=True)
