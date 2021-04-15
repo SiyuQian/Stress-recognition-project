@@ -2,7 +2,7 @@ from django.shortcuts import render
 from . import tasks
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from demoapp.models import Request
+from demoapp.models import Request, Response
 import neurokit2 as nk
 import pandas as pd
 import json
@@ -75,6 +75,10 @@ def stress_index(request):
         'status': 'success',
         'response': parsed
     }
+
+    response = Response()
+    response.response_body = body
+    response.save()
 
     # store the response body to the database
 
