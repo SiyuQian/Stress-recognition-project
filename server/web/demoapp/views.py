@@ -46,27 +46,22 @@ def stress_index(request):
             'response': 'Bad request! The request data have to be in a valid JSON format.',
         }
 
-    # store the request data into the Mysql database
+    # Store the request data into the Mysql database
     request = Request()
     request.request_body = body
     request.save()
 
-    # convert the json into a dataframe
+    # Convert the json into a dataframe
     dataframe = pd.DataFrame.from_dict(body)
-    # dataframe = pd.read_csv("https://raw.githubusercontent.com/SiyuQian/django-docker/master/712AF22B_Mar11_14-07-59.csv");
-    # Generate 15 seconds of PPG signal (recorded at 250 samples / second)
-    # 130
-    # ppg = nk.ppg_simulate(duration=15, sampling_rate=250, heart_rate=70)
-    signals, info = nk.ppg_process(dataframe['PPG'], sampling_rate=130)
 
     # Clear the noise
-    # ppg_clean = nk.ppg_clean(signals)
+    ppg_clean = nk.ppg_clean(dataframe['PPG'].div(1000000).to_numpy(), sampling_rate=50)
 
     # Peaks
-    peaks = nk.ppg_findpeaks(dataframe['PPG'].div(1000000).to_numpy(), sampling_rate=130)
+    peaks = nk.ppg_findpeaks(ppg_clean, sampling_rate=50)
 
     # Compute HRV indices
-    hrv_indices = nk.hrv(peaks, sampling_rate=130, show=True)
+    hrv_indices = nk.hrv(peaks, sampling_rate=50, show=False)
     result = hrv_indices.to_json()
     parsed = json.loads(result)
     # context = {'response' : json.dumps(parsed), 'post': body}
