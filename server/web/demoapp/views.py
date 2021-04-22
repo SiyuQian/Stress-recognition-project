@@ -3,6 +3,7 @@ from . import tasks
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from demoapp.models import Request, Response, Uuid
+from django.db.models import Avg
 import neurokit2 as nk
 import pandas as pd
 import json
@@ -67,6 +68,11 @@ def uuid_index(request):
 def stress_index(request):
     # success HTTP status code as default value
     status_code = 200
+    mode = 'hrv'
+    diff = 0
+    status = 'success'
+    note = ''
+
     # Validate the request
     if (request.method != 'POST') :
         status_code = 400
@@ -78,8 +84,59 @@ def stress_index(request):
 
         return JsonResponse(body, status = status_code)
 
+    # @todo: validate the mode value, the mode parameter should be optional
+    mode = request.GET.get('mode')
+
     # Handle the request from the client-end
     body_unicode = request.body.decode('utf-8')
+
+    if (mode == 'hr') :
+        # Convert the json into a dataframe
+        body = json.loads(body_unicode)
+
+        # Store the request data into the Mysql database
+        request = Request()
+        request.request_body = body
+        request.save()
+
+        # Convert the json into a dataframe
+        dataframe = pd.DataFrame.from_dict(body)
+        hr_mean = round(dataframe['HR'].mean(), 2)
+        device_code = dataframe['Device'].iloc[0]
+        uuid = dataframe['uuid'].iloc[0]
+
+        filtered_response = Response.objects.filter(device_code=device_code, uuid=uuid)
+
+        # compare the mean value with recent request
+        if (filtered_response.count() > 0) :
+            # extract the recent mean
+            diff = hr_mean - list(filtered_response.aggregate(Avg('mean')).values())[0]
+
+        if (diff >= 5 ) :
+            status = 'alert'
+            note = 'HR has been changed siginificantly, you probably in a stress.'
+
+        body = {
+            'statusCode': status_code,
+            'status': status,
+            'response': {
+                'mode': mode,
+                'device': device_code,
+                'uuid': uuid,
+                'HR_MEAN': hr_mean
+            },
+            'note': note
+        }
+
+        response = Response()
+        response.device_code = device_code
+        response.uuid = uuid
+        response.mode = mode
+        response.mean = hr_mean
+        response.response_body = body
+        response.save()
+
+        return JsonResponse(body, status = status_code)
 
     # validate if the request body is in JSON format
     try:
