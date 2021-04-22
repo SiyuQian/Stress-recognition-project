@@ -21,11 +21,21 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import polar.com.sdk.api.PolarBleApi;
 
@@ -37,18 +47,17 @@ public class DataCollector extends AppCompatActivity {
     private String DEVICE_ID;
     private String device_name;
     private static DataCollector instance;
-
+    public long startTime;
     private boolean update = false;
-
     public TextView deviceIDText;
     private TextView batteryText;
     private TextView PPGText;
     private Button recordDataBtn;
     private Button stopServiceBtn;
-
     private DataService dataService;
+    private int counter;
+    private String uuidAsString;
 //    private Intent serviceIntent;
-
 //    private boolean mBound = false;
 
 
@@ -58,7 +67,6 @@ public class DataCollector extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data_visualisation);
         DEVICE_ID = getIntent().getStringExtra("id");
-
         deviceIDText = findViewById(R.id.deviceIDText);
         batteryText = findViewById(R.id.batteryText);
         PPGText = findViewById(R.id.ppgText);
@@ -74,12 +82,12 @@ public class DataCollector extends AppCompatActivity {
 
         recordDataBtn.setOnClickListener(v -> {
             if (DataCollector.this.recordDataBtn.getText().equals("Start Recording")) {
-
+                checkId();
                 Intent intent = new Intent("sendingState");
                 intent.putExtra("sent", true);
+                intent.putExtra("gotUuid",uuidAsString);
                 sendBroadcast(intent);
                 DataCollector.this.recordDataBtn.setText("Stop Recording");
-
             } else {
                 Intent intent = new Intent("sendingState");
                 intent.putExtra("sent", false);
@@ -95,9 +103,51 @@ public class DataCollector extends AppCompatActivity {
 
     }
 
+    public void checkId() {
+        UUID uuid =UUID.randomUUID();
+        uuidAsString = uuid.toString();
+        RequestQueue requestQueue= Volley.newRequestQueue(DataCollector.this);
+        String url="http://172.23.44.34/api/v1/uuid"; // change the url
+        Thread thread1 = new Thread(){
+            public void run(){
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("uuid",uuidAsString);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                JsonObjectRequest jsonObjectRequest=new JsonObjectRequest(Request.Method.POST, url,jsonObject, new Response.Listener<JSONObject>() {
+                        @Override
+                        public void onResponse(JSONObject response) {
+                            System.out.println("success"+response);
+                            try {
+                                Log.d(response.getString("status"),"status111");
+                                if (response.getString("status").equals("error")) {
+                                    Log.d(response.getString("status"),"status222");
+                                    checkId();
+                                }
+
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+
+                        }
+                    }, new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            Log.d("RESP", "onResponse: " + error);
+                        }
+                    });
+                    requestQueue.add(jsonObjectRequest);
+                    requestQueue.cancelAll(jsonObjectRequest);
+            }
+        };
+        thread1.start();
+
+    }
 
 
-    @Override
+        @Override
     protected void onStart() {
         super.onStart();
     }
@@ -165,6 +215,7 @@ public class DataCollector extends AppCompatActivity {
     }
 
 
+
     private boolean isMyServiceRunning(Class<?> serviceClass) {
         ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
@@ -190,8 +241,10 @@ public class DataCollector extends AppCompatActivity {
                         batteryText.setText("Battery: " + intent.getStringExtra("battery") + "%");
                     }
                     if (intent.getStringExtra("ppg") != null) {
-                        PPGText.setText("PPG: " + intent.getStringExtra("ppg"));
+                        PPGText.setText("Collecting");
+//                        PPGText.setText("PPG: " + intent.getStringExtra("ppg"));
                     }
+
                     if (intent.getStringExtra("buttonState") != null) {
                         if (intent.getStringExtra("buttonState").equals("true")) {
                             recordDataBtn.setText("Stop Recording");

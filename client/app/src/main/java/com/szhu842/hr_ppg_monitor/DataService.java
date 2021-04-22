@@ -21,6 +21,9 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.opencsv.CSVWriter;
+
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -29,8 +32,8 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-import com.opencsv.CSVWriter;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.reactivestreams.Publisher;
@@ -68,7 +71,7 @@ public class DataService extends Service {
     public PolarBleApi api;
     private String TAG = "DataService";
 //    private Context classContext;
-
+    private String uu_id;
     private Disposable ppgDisposable = null;
     private Disposable accDisposable = null;
     private Disposable ppiDisposable = null;
@@ -91,8 +94,10 @@ public class DataService extends Service {
     private final String CHANNEL_ID = "com.szhu842";
     private final String CHANNEL_NAME = "data channel";
     private final int NOTIFICATION_ID = 1;
-
+    private int counter;
+    private int inumber;
     private long startTime;
+    public JSONObject jsdata;
 
     public DataService() {
     }
@@ -110,7 +115,6 @@ public class DataService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-
         SharedPreferences shardPref = getSharedPreferences(MainActivity.MyPREFERENCES,Context.MODE_PRIVATE);
         DEVICE_ID = shardPref.getString("deviceID", "default");
 
@@ -122,13 +126,11 @@ public class DataService extends Service {
         filter.addAction("onResume");
         filter.addAction("onPause");
         registerReceiver(receiver, filter);
-
         startForegroundService();
     }
 
     @Override
     public void onDestroy() {
-
 
         Intent broadcastIntent = new Intent();
         broadcastIntent.setAction("restartservice");
@@ -149,7 +151,6 @@ public class DataService extends Service {
 //            return START_STICKY;
 //        }
 //        DEVICE_ID = intent.getStringExtra("id");
-
         setupPolar();
 
         return START_STICKY;
@@ -232,7 +233,7 @@ public class DataService extends Service {
 
                 @Override
                 public void deviceDisconnected(PolarDeviceInfo s) {
-                    Log.d(TAG, "Device disconnected " + s);
+                    Log.d(TAG, "Device disconnected" + s);
 
                     Intent intent = new Intent("updatingState");
                     intent.putExtra("name", "Disconnected");
@@ -271,7 +272,6 @@ public class DataService extends Service {
                 public void ppiFeatureReady(String s) {
                     Log.d(TAG, "PPI Feature ready " + s);
 //                    streamPPI();
-
                 }
 
                 @Override
@@ -306,10 +306,13 @@ public class DataService extends Service {
                 }
 
                 @Override
-                public void hrNotificationReceived(String s,
-                                                   PolarHrData polarHrData) {
+                public void hrNotificationReceived(String s,PolarHrData polarHrData) {
                     hr = polarHrData.hr;
                     Log.d(TAG, "HR " + polarHrData.hr);
+
+                    Intent intent = new Intent("updatingState");
+                    intent.putExtra("hr", String.valueOf(hr));
+                    sendBroadcast(intent);
 
                 }
 
@@ -346,8 +349,8 @@ public class DataService extends Service {
                                     intent.putExtra("ppg", String.valueOf(ppgData));
                                     sendBroadcast(intent);
                                      if (sent) {
-                                        writeToCsv();
-                                        postRequest();
+                                       //writeToCsv();
+                                       postRequest();
 
                                      }
                                 }
@@ -368,11 +371,9 @@ public class DataService extends Service {
     }
 
 
-    private void postRequest() {
+    public void postRequest() {
         RequestQueue requestQueue= Volley.newRequestQueue(DataService.this);
-        String url="https://reqres.in/api/users"; // change the url
-
-
+        String url="http://192.168.18.27/api/v1/stress"; // change the url
         long timeMillis = System.currentTimeMillis();
         SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss:SSS", Locale.ENGLISH);
         Date resultdate = new Date(timeMillis);
@@ -382,44 +383,64 @@ public class DataService extends Service {
         int minutes = (int) ((resulttime / (1000*60)) % 60);
         int hours   = (int) ((resulttime / (1000*60*60)) % 24);
         String time = hours + ":" + minutes + ":" + seconds + ":" + (resulttime%1000);
-        List<String[]> data = new ArrayList<String[]>();
-        data.add(new String[]{deviceName, timeDate, time, String.valueOf(ppgData),
-                String.valueOf(hr)});
 
-        Log.d(deviceName,"deviceName");
-        Log.d(timeDate,"timeDate");
-        Log.d(time,"time");
-        Log.d(String.valueOf(ppgData),"ppgData");
-        Log.d(String.valueOf(hr),"hr");
+//        Log.d(deviceName,"deviceName");
+//        Log.d(timeDate,"timeDate");
+//        Log.d(time,"time");
+//        Log.d(String.valueOf(ppgData),"ppgData");
 
-        JSONObject postData = new JSONObject();
-        try {
-//            postData.put("deviceName", deviceName);
-//            postData.put("timeDate",timeDate);
-//            postData.put("time",time);
-//            postData.put("ppgData", String.valueOf(ppgData));
-//            postData.put("hr",String.valueOf(hr));
-            postData.put("name", "Jonathan");
-            postData.put("job", "Software Engineer");
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        JsonObjectRequest jsonObjectRequest=new JsonObjectRequest(Request.Method.POST, url,postData, new Response.Listener<JSONObject>() {
+        Thread thread = new Thread(){
+            public void run(){
+                JSONArray jsonArray = new JSONArray();
+                    try {
+                    // 1st object
+                    JSONObject postData = new JSONObject();
 
-            @Override
-            public void onResponse(JSONObject response) {
-                System.out.println(response);
+                    postData.put("deviceName", deviceName);
+                    postData.put("timeDate",timeDate);
+                    postData.put("time",time);
+                    postData.put("ppgData", String.valueOf(ppgData));
+                    postData.put("hr",String.valueOf(hr));
+                    postData.put("uuid",uu_id);
+
+                    jsonArray.put(postData);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                Log.d("uuid1111",uu_id);
+                Log.d(String.valueOf(jsonArray),"1231");
+                Log.d(String.valueOf(jsonArray.length()),"length");
+                if(jsonArray.length()>3){
+                    JsonArrayRequest jsonArrayRequest=new JsonArrayRequest(Request.Method.POST, url,jsonArray, new Response.Listener<JSONArray>() {
+                        @Override
+                        public void onResponse(JSONArray response) {
+                            System.out.println("success"+response);
+                        }
+                    }, new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            Log.d("RESP", "onResponse: " + error);
+                        }
+                    });
+                    requestQueue.add(jsonArrayRequest);
+                    requestQueue.cancelAll(jsonArrayRequest);
+                }
+
             }
-
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.d("RESP", "onResponse: " + error);
-
+        };
+        if (counter> 10) {
+            try {
+                thread.sleep(10*1000);
+                counter = 0;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        });
-        requestQueue.add(jsonObjectRequest);
-
+        };
+        thread.start();
+        counter++;
+        inumber++;
+        Log.d(String.valueOf(counter),"counter");
     }
 
     public void streamACC() {
@@ -503,10 +524,8 @@ public class DataService extends Service {
                 CSVWriter writer = null;
                 try {
                     writer = new CSVWriter(new FileWriter(csvFile));
-
                     List<String[]> data = new ArrayList<String[]>();
                     data.add(new String[]{"Device", "TimeDate", "Time", "PPG", "HR", "AccX", "AccY", "AccZ"});
-
                     writer.writeAll(data); // data is adding to csv
 
                     writer.close();
@@ -526,7 +545,6 @@ public class DataService extends Service {
                 int minutes = (int) ((resulttime / (1000*60)) % 60);
                 int hours   = (int) ((resulttime / (1000*60*60)) % 24);
                 String time = hours + ":" + minutes + ":" + seconds + ":" + (resulttime%1000);
-
 
                 List<String[]> data = new ArrayList<String[]>();
                 data.add(new String[]{deviceName, timeDate, time, String.valueOf(ppgData),
@@ -559,15 +577,12 @@ public class DataService extends Service {
 //        } else {
 //            Log.d(TAG, "startSending: " + ppgDisposable.isDisposed());
 //        }
-
-
     }
 
     public void stopSending() {
         sent = false;
         stopForeground(true);
     }
-
 
     @Nullable
     @Override
@@ -580,18 +595,22 @@ public class DataService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-
             if (action.equals("sendingState")) {
+                uu_id= intent.getStringExtra("gotUuid");
+                intent.putExtra("uu_id",uu_id);
+                Log.d("uuid",uu_id);
                 if (intent.getBooleanExtra("sent", false)) {
                     startSending();
                 } else {
                     stopSending();
                 }
+
             } else if (action.equals("requestUpdate")) {
                 Intent sendintent = new Intent("updatingState");
                 sendintent.putExtra("name", deviceName);
                 sendintent.putExtra("battery", battery);
                 sendintent.putExtra("ppg", String.valueOf(ppgData));
+                sendintent.putExtra("hr", String.valueOf(hr));
                 sendintent.putExtra("buttonState", String.valueOf(sent));
                 sendBroadcast(sendintent);
             } else if (action.equals("turnoffService")) {
@@ -600,8 +619,6 @@ public class DataService extends Service {
                 Intent sendintent = new Intent("updatingState");
                 sendintent.putExtra("buttonState", String.valueOf(sent));
                 sendBroadcast(sendintent);
-
-
 //                ppgDisposable.dispose();
 //                Log.d(TAG, "onReceive: " + ppgDisposable.isDisposed());
 
@@ -616,7 +633,7 @@ public class DataService extends Service {
                 if (api != null) {
                     api.backgroundEntered();
                 }
-            } else if (action.equals("onResume")) {
+            }else if (action.equals("onResume")) {
                 if (api != null) {
                     api.foregroundEntered();
                 }
