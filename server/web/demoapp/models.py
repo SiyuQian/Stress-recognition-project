@@ -9,6 +9,10 @@ class Request(models.Model):
 
 
 class Response(models.Model):
+	device_code = models.CharField(max_length=50, default='')
+	uuid = models.CharField(max_length=50, default='')
+	mode = models.CharField(max_length=50, default='')
+	mean = models.CharField(max_length=50, default='')
 	response_body = models.JSONField()
 	created_at = models.DateTimeField(auto_now_add=True)
 
