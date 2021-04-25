@@ -67,6 +67,31 @@ import polar.com.sdk.api.model.PolarOhrPPIData;
 import polar.com.sdk.api.model.PolarSensorSetting;
 
 public class DataService extends Service {
+    /**
+     * The server URL of the API that process the PPG data
+     */
+    public static final String SERVER_URL = "http://192.168.1.65/api/v1/stress?mode=hr";
+
+    /**
+     * The frequency of sending the HTTP requests
+     */
+    public static final int FREQUENCY = 20;
+
+    /**
+     * The boolean flag to determine if a request is sent for the current second
+     */
+    public boolean isSend = false;
+
+    /**
+     * The storage to save the current second
+     */
+    public int secondStorage = 0;
+
+    /**
+     * The HTTP request data container
+     */
+    public JSONArray httpRequestData = new JSONArray();
+
 
     public PolarBleApi api;
     private String TAG = "DataService";
@@ -370,10 +395,37 @@ public class DataService extends Service {
         }
     }
 
-
+    /**
+     * 20s per HTTP request
+     * The request should contain all the data generated between the current and last request
+     * request body example:
+     * [
+     *  {
+     *    "Device": "712AF22B",
+     *     "TimeDate": "Apr 16,2021 18:31:17:756",
+     *     "Time": "0:0:4:4",
+     *     "PPG": 293451,
+     *     "HR": 92,
+     *     "AccX": -855,
+     *     "AccY": 418,
+     *     "AccZ": 247,
+     *     "uuid": "88dae6c7-da57-4616-8edc-369b814e37cb"
+     *  },
+     *  {
+     *     "Device": "712AF22B",
+     *     "TimeDate": "Apr 16,2021 18:31:17:756",
+     *     "Time": "0:0:4:4",
+     *     "PPG": 293451,
+     *     "HR": 92,
+     *     "AccX": -855,
+     *     "AccY": 418,
+     *     "AccZ": 247,
+     *     "uuid": "88dae6c7-da57-4616-8edc-369b814e37cb"
+     *  },
+     *  ...
+     * ]
+     */
     public void postRequest() {
-        RequestQueue requestQueue= Volley.newRequestQueue(DataService.this);
-        String url="http://192.168.18.27/api/v1/stress"; // change the url
         long timeMillis = System.currentTimeMillis();
         SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss:SSS", Locale.ENGLISH);
         Date resultdate = new Date(timeMillis);
@@ -384,62 +436,77 @@ public class DataService extends Service {
         int hours   = (int) ((resulttime / (1000*60*60)) % 24);
         String time = hours + ":" + minutes + ":" + seconds + ":" + (resulttime%1000);
 
-//        Log.d(deviceName,"deviceName");
-//        Log.d(timeDate,"timeDate");
-//        Log.d(time,"time");
-//        Log.d(String.valueOf(ppgData),"ppgData");
+        Log.d(deviceName,"deviceName");
+        Log.d(timeDate,"timeDate");
+        Log.d(time,"time");
+        Log.d(String.valueOf(ppgData),"ppgData");
 
-        Thread thread = new Thread(){
-            public void run(){
-                JSONArray jsonArray = new JSONArray();
-                    try {
-                    // 1st object
-                    JSONObject postData = new JSONObject();
 
-                    postData.put("deviceName", deviceName);
-                    postData.put("timeDate",timeDate);
-                    postData.put("time",time);
-                    postData.put("ppgData", String.valueOf(ppgData));
-                    postData.put("hr",String.valueOf(hr));
-                    postData.put("uuid",uu_id);
+        /**
+         * when the counter having the remainder of 20 then the program should send the request
+         * e.g 0s, 20s, 40s, 60s
+         */
+        Log.d(String.valueOf(timeMillis % FREQUENCY), "remainder");
 
-                    jsonArray.put(postData);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
+        /**
+         * Update the second storage every second
+         * If the second is past, then reset the isSend flag
+         */
+        if (seconds != secondStorage) {
+            secondStorage = seconds;
+            isSend = false;
+        }
 
-                Log.d("uuid1111",uu_id);
-                Log.d(String.valueOf(jsonArray),"1231");
-                Log.d(String.valueOf(jsonArray.length()),"length");
-                if(jsonArray.length()>3){
-                    JsonArrayRequest jsonArrayRequest=new JsonArrayRequest(Request.Method.POST, url,jsonArray, new Response.Listener<JSONArray>() {
-                        @Override
-                        public void onResponse(JSONArray response) {
-                            System.out.println("success"+response);
-                        }
-                    }, new Response.ErrorListener() {
-                        @Override
-                        public void onErrorResponse(VolleyError error) {
-                            Log.d("RESP", "onResponse: " + error);
-                        }
-                    });
-                    requestQueue.add(jsonArrayRequest);
-                    requestQueue.cancelAll(jsonArrayRequest);
+        if (seconds % FREQUENCY == 0 && seconds != 0 && !isSend) {
+            Log.d(String.valueOf(counter),"CounterIn20");
+
+            /**
+             * Execute the Async task to send out the HTTP request
+             */
+            RequestQueue requestQueue = Volley.newRequestQueue(DataService.this);
+            JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(Request.Method.POST, SERVER_URL, httpRequestData, new Response.Listener<JSONArray>() {
+                @Override
+                public void onResponse(JSONArray response) {
+                    System.out.println("success" + response);
                 }
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    Log.d("RESP", "onResponse: " + error);
+                }
+            });
+            requestQueue.add(jsonArrayRequest);
+            requestQueue.cancelAll(jsonArrayRequest);
 
-            }
-        };
-        if (counter> 10) {
+            /**
+             * Update isSend value if the request is already sent for the current second
+             */
+            isSend = true;
+//            new ReuqestSender().execute(httpRequestData);
+        } else {
+            Log.d(String.valueOf(counter),"CounterInEvery");
+            /**
+             * Create the JSON array which will be sent to the server end
+             */
             try {
-                thread.sleep(10*1000);
-                counter = 0;
-            } catch (InterruptedException e) {
+                // The single JSON object contains the data
+                JSONObject postData = new JSONObject();
+                postData.put("Device", deviceName);
+                postData.put("TimeDate",timeDate);
+                postData.put("Time",time);
+                postData.put("PPG", String.valueOf(ppgData));
+                postData.put("HR",String.valueOf(hr));
+                postData.put("uuid",uu_id);
+
+                httpRequestData.put(postData);
+//                Log.d(String.valueOf(postData), "postData");
+//                Log.d(String.valueOf(httpRequestData), "httpRequestData");
+            } catch (JSONException e) {
                 e.printStackTrace();
             }
-        };
-        thread.start();
+        }
+
         counter++;
-        inumber++;
         Log.d(String.valueOf(counter),"counter");
     }
 
