@@ -9,6 +9,9 @@
 *.ap_
 *.aab
 
+# Keep the imported aar files
+!app/libs/**
+
 # Files for the ART/Dalvik VM
 *.dex
 
