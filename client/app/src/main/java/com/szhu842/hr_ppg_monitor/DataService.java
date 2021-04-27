@@ -10,8 +10,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.graphics.Color;
-import android.os.Binder;
 import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
@@ -24,13 +22,10 @@ import androidx.core.app.NotificationCompat;
 import com.android.volley.toolbox.JsonArrayRequest;
 import com.opencsv.CSVWriter;
 
-import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.json.JSONArray;
@@ -44,16 +39,12 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.disposables.Disposable;
-import io.reactivex.rxjava3.functions.Action;
-import io.reactivex.rxjava3.functions.Consumer;
 import io.reactivex.rxjava3.functions.Function;
 import polar.com.sdk.api.PolarBleApi;
 import polar.com.sdk.api.PolarBleApiCallback;
@@ -70,12 +61,12 @@ public class DataService extends Service {
     /**
      * The server URL of the API that process the PPG data
      */
-    public static final String SERVER_URL = "http://192.168.1.65/api/v1/stress?mode=hr";
+    public static final String SERVER_URL = "http://192.168.1.65/api/v1/stress?mode=hrv";
 
     /**
      * The frequency of sending the HTTP requests
      */
-    public static final int FREQUENCY = 20;
+    public static final int FREQUENCY = 59;
 
     /**
      * The boolean flag to determine if a request is sent for the current second
@@ -482,6 +473,11 @@ public class DataService extends Service {
              * Update isSend value if the request is already sent for the current second
              */
             isSend = true;
+
+            /**
+             * Reset HTTP request data
+             */
+            httpRequestData = new JSONArray();
 //            new ReuqestSender().execute(httpRequestData);
         } else {
             Log.d(String.valueOf(counter),"CounterInEvery");

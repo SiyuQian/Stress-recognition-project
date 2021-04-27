@@ -24,3 +24,6 @@ def create_json_response(status_code = 200, status = 'success', data = {}, messa
         'message': message
     }
 	return JsonResponse(body, status = status_code)
+
+def convert_unit(x):
+    return float(x) / 1000000

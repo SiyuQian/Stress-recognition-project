@@ -107,43 +107,37 @@ public class DataCollector extends AppCompatActivity {
         UUID uuid =UUID.randomUUID();
         uuidAsString = uuid.toString();
         RequestQueue requestQueue= Volley.newRequestQueue(DataCollector.this);
-        String url="http://172.23.44.34/api/v1/uuid"; // change the url
-        Thread thread1 = new Thread(){
-            public void run(){
-                JSONObject jsonObject = new JSONObject();
+        String url="http://192.168.1.65/api/v1/uuid"; // change the url
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put("uuid",uuidAsString);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        JsonObjectRequest jsonObjectRequest=new JsonObjectRequest(Request.Method.POST, url,jsonObject, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                System.out.println("success"+response);
                 try {
-                    jsonObject.put("uuid",uuidAsString);
+                    Log.d(response.getString("status"),"status111");
+                    if (response.getString("status").equals("error")) {
+                        Log.d(response.getString("status"),"status222");
+                        checkId();
+                    }
+
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                JsonObjectRequest jsonObjectRequest=new JsonObjectRequest(Request.Method.POST, url,jsonObject, new Response.Listener<JSONObject>() {
-                        @Override
-                        public void onResponse(JSONObject response) {
-                            System.out.println("success"+response);
-                            try {
-                                Log.d(response.getString("status"),"status111");
-                                if (response.getString("status").equals("error")) {
-                                    Log.d(response.getString("status"),"status222");
-                                    checkId();
-                                }
 
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-
-                        }
-                    }, new Response.ErrorListener() {
-                        @Override
-                        public void onErrorResponse(VolleyError error) {
-                            Log.d("RESP", "onResponse: " + error);
-                        }
-                    });
-                    requestQueue.add(jsonObjectRequest);
-                    requestQueue.cancelAll(jsonObjectRequest);
             }
-        };
-        thread1.start();
-
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("RESP", "onResponse: " + error);
+            }
+        });
+        requestQueue.add(jsonObjectRequest);
+        requestQueue.cancelAll(jsonObjectRequest);
     }
 
 

@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from demoapp.models import Request, Response, Uuid
 from django.db.models import Avg
-from demoapp.utils import validate_http_request_method, create_json_response
+from demoapp.utils import validate_http_request_method, create_json_response, convert_unit
 import neurokit2 as nk
 import pandas as pd
 import json
@@ -38,10 +38,12 @@ def uuid_index(request):
 
     uuid = Uuid.objects.filter(uuid = body['uuid'])
 
+    logger.info('checking UUID availaliy')
+
     # UUID is valid
     if uuid.count() == 0 :
         try:
-            uuid = Uuid(uuid=body['uuid'])
+            uuid = Uuid(uuid = body['uuid'])
             uuid.save()
         except Exception as e:
             return create_json_response(status_code, 'error', message = str(e))
@@ -85,21 +87,21 @@ def stress_index(request):
         # Convert the json into a dataframe for further processing
         dataframe = pd.DataFrame.from_dict(body)
     except Exception as e:
-        return create_json_response(500, 'error', data = { 'request_body': body }, message = str(e))
+        return create_json_response(500, 'error', data = { 'raw_request_body': request.data }, message = str(e))
 
     # @todo: validate the mode value, the mode parameter should be optional
     mode = request.GET.get('mode')
 
+    # Get the first value of the device column (as the device code value will never change from a same device)
+    device_code = dataframe['Device'].iloc[0]
+
+    # Get the first value of the uuid column (as the device code value will never change from a same experiment)
+    uuid = dataframe['uuid'].iloc[0]
+
+    # Calculate the average hear rate based on HR column
+    hr_mean = round(dataframe['HR'].astype(float).mean(axis=0), 2)
+
     if mode == 'hr' :
-        # Calculate the average hear rate based on HR column
-        hr_mean = round(dataframe['HR'].astype(float).mean(axis=0), 2)
-
-        # Get the first value of the device column (as the device code value will never change from a same device)
-        device_code = dataframe['Device'].iloc[0]
-
-        # Get the first value of the uuid column (as the device code value will never change from a same experiment)
-        uuid = dataframe['uuid'].iloc[0]
-
         filtered_response = Response.objects.filter(device_code=device_code, uuid=uuid)
 
         # compare the mean value with recent request
@@ -120,8 +122,15 @@ def stress_index(request):
             'HR_MEAN': hr_mean
         }
     elif mode == 'hrv':
+        # logger.info('==================')
+        # logger.info(dataframe['PPG'])
+        # logger.info(type['PPG'])
+        # logger.info(dataframe['PPG'].astype(float).div(1000000).to_numpy())
+        # logger.info(type(dataframe['PPG'].astype(float).div(1000000)))
+        # logger.info('==================')
+
         # Clear the noise
-        ppg_clean = nk.ppg_clean(dataframe['PPG'].div(1000000).to_numpy(), sampling_rate=50)
+        ppg_clean = nk.ppg_clean(dataframe['PPG'].apply(convert_unit), sampling_rate=50)
 
         # Peaks
         peaks = nk.ppg_findpeaks(ppg_clean, sampling_rate=50)
@@ -131,22 +140,25 @@ def stress_index(request):
         result = hrv_indices.to_json()
         parsed = json.loads(result)
 
-        # context = {'response' : json.dumps(parsed), 'post': body}
-        body = {
-            'statusCode': status_code,
-            'status': 'success',
-            'response': parsed
+        data = {
+            'mode': mode,
+            'device': device_code,
+            'uuid': uuid,
+            'hr_mean': hr_mean,
+            'HRV': parsed
         }
 
     # add message into the data dict
     data['message'] = message
+
+    mean_value = hr_mean if mode == 'hr' and hr_mean != None else parsed['HRV_MeanNN']['0']
 
     # Store response into Mysql database
     response_model = Response()
     response_model.device_code = device_code
     response_model.uuid = uuid
     response_model.mode = mode
-    response_model.mean = hr_mean
+    response_model.mean = mean_value
     response_model.response_body = data
     response_model.save()
 
