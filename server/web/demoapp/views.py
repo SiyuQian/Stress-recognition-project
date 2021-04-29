@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from demoapp.models import Request, Response, Uuid
 from django.db.models import Avg
-from demoapp.utils import validate_http_request_method, create_json_response, convert_unit, stress_classifier, do_tpot
+from demoapp.utils import validate_http_request_method, create_json_response, convert_unit, round_floats, stress_classifier, do_tpot, random_forest_classfier
 import neurokit2 as nk
 import pandas as pd
 import json
@@ -200,15 +200,15 @@ def ml_index(request):
         
     logger.info(dataframe_hrv.shape)
     
-
+    # 'HRV.HRV_ULF.0', 'HRV.HRV_VLF.0', are removed because all the values are None
     selected_X_columns = ['HRV.HRV_S.0',
        'HRV.HRV_AI.0', 'HRV.HRV_Ca.0', 'HRV.HRV_Cd.0', 'HRV.HRV_GI.0',
        'HRV.HRV_HF.0', 'HRV.HRV_LF.0', 'HRV.HRV_PI.0', 'HRV.HRV_SI.0',
        'HRV.HRV_C1a.0', 'HRV.HRV_C1d.0', 'HRV.HRV_C2a.0', 'HRV.HRV_C2d.0',
        'HRV.HRV_CSI.0', 'HRV.HRV_CVI.0', 'HRV.HRV_HFn.0', 'HRV.HRV_HTI.0',
        'HRV.HRV_LFn.0', 'HRV.HRV_PAS.0', 'HRV.HRV_PIP.0', 'HRV.HRV_PSS.0',
-       'HRV.HRV_SD1.0', 'HRV.HRV_SD2.0', 'HRV.HRV_ULF.0', 'HRV.HRV_VHF.0',
-       'HRV.HRV_VLF.0', 'HRV.HRV_ApEn.0', 'HRV.HRV_CVNN.0', 'HRV.HRV_CVSD.0',
+       'HRV.HRV_SD1.0', 'HRV.HRV_SD2.0', 'HRV.HRV_VHF.0',
+       'HRV.HRV_ApEn.0', 'HRV.HRV_CVNN.0', 'HRV.HRV_CVSD.0',
        'HRV.HRV_IALS.0', 'HRV.HRV_LFHF.0', 'HRV.HRV_LnHF.0', 'HRV.HRV_SD1a.0',
        'HRV.HRV_SD1d.0', 'HRV.HRV_SD2a.0', 'HRV.HRV_SD2d.0', 'HRV.HRV_SDNN.0',
        'HRV.HRV_SDSD.0', 'HRV.HRV_TINN.0', 'HRV.HRV_IQRNN.0',
@@ -218,9 +218,17 @@ def ml_index(request):
        'HRV.HRV_SampEn.0', 'HRV.HRV_MedianNN.0', 'HRV.HRV_CSI_Modified.0'
     ]
 
+    for column_name in selected_X_columns:
+        logger.info(dataframe_hrv[column_name])
+        dataframe_hrv[column_name] = dataframe_hrv[column_name].apply(round_floats)
+
     X = dataframe_hrv[selected_X_columns]
     y = dataframe_hrv['stress']
 
-    tpot_classifer = do_tpot(generations=10, population_size=20, X=X, y=y)
+    # tpot_classifer = do_tpot(generations=10, population_size=20, X=X, y=y)
+
+    prediction = random_forest_classfier(X=X, y=y, test_size=0.2, random_state=0, debug=True)
+
+    logger.info(prediction)
 
     return create_json_response(status_code, status, data, message = filtered_response.count())
