@@ -95,7 +95,6 @@ public class DataCollector extends AppCompatActivity {
                 DataCollector.this.recordDataBtn.setText("Start Recording");
             }
         });
-
         stopServiceBtn.setOnClickListener(v-> {
             Intent intent = new Intent("turnoffService");
             sendBroadcast(intent);
@@ -106,8 +105,9 @@ public class DataCollector extends AppCompatActivity {
     public void checkId() {
         UUID uuid =UUID.randomUUID();
         uuidAsString = uuid.toString();
+        SendUrl sendUrl =new SendUrl();
         RequestQueue requestQueue= Volley.newRequestQueue(DataCollector.this);
-        String url="http://192.168.1.65/api/v1/uuid"; // change the url
+        String url=sendUrl.geturl()+"/uuid"; // change the url
         JSONObject jsonObject = new JSONObject();
         try {
             jsonObject.put("uuid",uuidAsString);

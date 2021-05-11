@@ -60,8 +60,11 @@ import polar.com.sdk.api.model.PolarSensorSetting;
 public class DataService extends Service {
     /**
      * The server URL of the API that process the PPG data
+     *
      */
-    public static final String SERVER_URL = "http://192.168.1.65/api/v1/stress?mode=hrv";
+    static SendUrl sendUrl =new SendUrl();
+    public static final String SERVER_URL = sendUrl.geturl()+"/stress?mode=hrv"; // change the url
+    ;
 
     /**
      * The frequency of sending the HTTP requests
@@ -426,12 +429,11 @@ public class DataService extends Service {
         int minutes = (int) ((resulttime / (1000*60)) % 60);
         int hours   = (int) ((resulttime / (1000*60*60)) % 24);
         String time = hours + ":" + minutes + ":" + seconds + ":" + (resulttime%1000);
-
-        Log.d(deviceName,"deviceName");
-        Log.d(timeDate,"timeDate");
-        Log.d(time,"time");
-        Log.d(String.valueOf(ppgData),"ppgData");
-
+//
+//        Log.d(deviceName,"deviceName");
+//        Log.d(timeDate,"timeDate");
+//        Log.d(time,"time");
+//        Log.d(String.valueOf(ppgData),"ppgData");
 
         /**
          * when the counter having the remainder of 20 then the program should send the request
