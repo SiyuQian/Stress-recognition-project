@@ -60,6 +60,26 @@ services:
     depends_on:
       - mysql
 
+  datascience-notebook:
+      image: jupyter/datascience-notebook
+      volumes:
+        - ~/Study/Stress-recognition-project/server/notebook:/home/jovyan/work
+        - ~/Study/Stress-recognition-project/server/datasets:/home/jovyan/work/datasets
+        - ~/Study/Stress-recognition-project/server/modules:/home/jovyan/work/modules
+        - ./ssl:/etc/ssl/notebook
+      ports:
+        - 8888:8888
+      container_name: jupyter_notebook
+      command: "start-notebook.sh \
+        --NotebookApp.password=sha1:e8fe4d65bb3f:28e365d25add5f024d7c7a8d6497c13ad3386a90 \
+        --NotebookApp.certfile=/etc/ssl/notebook/jupyter.pem"
+      environment:
+        NB_USER: docker_worker
+        NB_UID: 1008
+        NB_GID: 1011
+        CHOWN_HOME: 'yes'
+        CHOWN_HOME_OPTS: -R
+
   # celery:
   #   build: .
   #   command: celery -A web worker -l info
