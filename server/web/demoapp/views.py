@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from demoapp.models import Request, Response, Uuid
 from django.db.models import Avg
-from demoapp.utils import validate_http_request_method, create_json_response, convert_unit, round_floats, stress_classifier, do_tpot, random_forest_classfier
+from demoapp.utils import validate_http_request_method, create_json_response, convert_unit, round_floats
 import neurokit2 as nk
 import pandas as pd
 import json
@@ -61,6 +61,7 @@ def uuid_index(request):
 def stress_index(request):
     # success HTTP status code as default value
     status_code = 200
+    sample_rate = 50
     mode = 'hrv'
     diff = 0
     status = 'success'
@@ -124,19 +125,32 @@ def stress_index(request):
     elif mode == 'hrv':
         # logger.info('==================')
         # logger.info(dataframe['PPG'])
-        # logger.info(type['PPG'])
+        # logger.info(type['PPGW'])
         # logger.info(dataframe['PPG'].astype(float).div(1000000).to_numpy())
         # logger.info(type(dataframe['PPG'].astype(float).div(1000000)))
         # logger.info('==================')
 
         # Clear the noise
-        ppg_clean = nk.ppg_clean(dataframe['PPG'].apply(convert_unit), sampling_rate=50)
+        ppg_clean = nk.ppg_clean(dataframe['PPG'].apply(convert_unit), sampling_rate=sample_rate)
 
         # Peaks
-        peaks = nk.ppg_findpeaks(ppg_clean, sampling_rate=50)
+        peaks = nk.ppg_findpeaks(ppg_clean, sampling_rate=sample_rate)
 
         # Compute HRV indices
-        hrv_indices = nk.hrv(peaks, sampling_rate=50, show=False)
+        try:
+            hrv_indices = nk.hrv(peaks, sampling_rate=sample_rate, show=False)
+        except ValueError:
+            status = 'error'
+            message = 'Please wear the polarOH1 properly.'
+            data = {
+                'mode': mode,
+                'device': device_code,
+                'uuid': uuid,
+                'hr_mean': hr_mean
+            }
+            data['message'] = message
+            return create_json_response(status_code, status, data, message = message)
+        
         result = hrv_indices.to_json()
         parsed = json.loads(result)
 
@@ -164,71 +178,71 @@ def stress_index(request):
 
     return create_json_response(status_code, status, data, message = message)
 
-@csrf_exempt
-def ml_index(request):
-    status_code = 200
-    status = 'success'
+# @csrf_exempt
+# def ml_index(request):
+#     status_code = 200
+#     status = 'success'
     
 
-    uuid = request.GET.get('uuid')
-    device_code = request.GET.get('device_code')
+#     uuid = request.GET.get('uuid')
+#     device_code = request.GET.get('device_code')
 
-    # Read data from database
-    # Filter the data with device code and uuid
-    filtered_response = Response.objects.filter(device_code=device_code, uuid=uuid)
+#     # Read data from database
+#     # Filter the data with device code and uuid
+#     filtered_response = Response.objects.filter(device_code=device_code, uuid=uuid)
 
-    # Convert data to dataframe
-    df = pd.DataFrame(list(filtered_response.values()))
+#     # Convert data to dataframe
+#     df = pd.DataFrame(list(filtered_response.values()))
 
-    # Initialize empty dataframe with column names
-    dataframe_hrv = pd.DataFrame()
+#     # Initialize empty dataframe with column names
+#     dataframe_hrv = pd.DataFrame()
 
-    # Process data with sklearn ML algorithms
-    df = df.reset_index(drop=True)
+#     # Process data with sklearn ML algorithms
+#     df = df.reset_index(drop=True)
 
-    # Transform response body data
-    for index, row in df['response_body'].iteritems():
-        data = json.loads(json.dumps(row))
-        tmp_df = pd.json_normalize(data)
+#     # Transform response body data
+#     for index, row in df['response_body'].iteritems():
+#         data = json.loads(json.dumps(row))
+#         tmp_df = pd.json_normalize(data)
 
-        dataframe_hrv = dataframe_hrv.append(tmp_df)
+#         dataframe_hrv = dataframe_hrv.append(tmp_df)
 
-    logger.info(dataframe_hrv.columns)
+#     logger.info(dataframe_hrv.columns)
 
-    # Append stress column into the dataframe by heart rate
-    dataframe_hrv['stress'] = dataframe_hrv.apply(lambda row: stress_classifier(row), axis=1)
+#     # Append stress column into the dataframe by heart rate
+#     dataframe_hrv['stress'] = dataframe_hrv.apply(lambda row: stress_classifier(row), axis=1)
         
-    logger.info(dataframe_hrv.shape)
+#     logger.info(dataframe_hrv.shape)
     
-    # 'HRV.HRV_ULF.0', 'HRV.HRV_VLF.0', are removed because all the values are None
-    selected_X_columns = ['HRV.HRV_S.0',
-       'HRV.HRV_AI.0', 'HRV.HRV_Ca.0', 'HRV.HRV_Cd.0', 'HRV.HRV_GI.0',
-       'HRV.HRV_HF.0', 'HRV.HRV_LF.0', 'HRV.HRV_PI.0', 'HRV.HRV_SI.0',
-       'HRV.HRV_C1a.0', 'HRV.HRV_C1d.0', 'HRV.HRV_C2a.0', 'HRV.HRV_C2d.0',
-       'HRV.HRV_CSI.0', 'HRV.HRV_CVI.0', 'HRV.HRV_HFn.0', 'HRV.HRV_HTI.0',
-       'HRV.HRV_LFn.0', 'HRV.HRV_PAS.0', 'HRV.HRV_PIP.0', 'HRV.HRV_PSS.0',
-       'HRV.HRV_SD1.0', 'HRV.HRV_SD2.0', 'HRV.HRV_VHF.0',
-       'HRV.HRV_ApEn.0', 'HRV.HRV_CVNN.0', 'HRV.HRV_CVSD.0',
-       'HRV.HRV_IALS.0', 'HRV.HRV_LFHF.0', 'HRV.HRV_LnHF.0', 'HRV.HRV_SD1a.0',
-       'HRV.HRV_SD1d.0', 'HRV.HRV_SD2a.0', 'HRV.HRV_SD2d.0', 'HRV.HRV_SDNN.0',
-       'HRV.HRV_SDSD.0', 'HRV.HRV_TINN.0', 'HRV.HRV_IQRNN.0',
-       'HRV.HRV_MCVNN.0', 'HRV.HRV_MadNN.0', 'HRV.HRV_RMSSD.0',
-       'HRV.HRV_SDNNa.0', 'HRV.HRV_SDNNd.0', 'HRV.HRV_pNN20.0',
-       'HRV.HRV_pNN50.0', 'HRV.HRV_MeanNN.0', 'HRV.HRV_SD1SD2.0',
-       'HRV.HRV_SampEn.0', 'HRV.HRV_MedianNN.0', 'HRV.HRV_CSI_Modified.0'
-    ]
+#     # 'HRV.HRV_ULF.0', 'HRV.HRV_VLF.0', are removed because all the values are None
+#     selected_X_columns = ['HRV.HRV_S.0',
+#        'HRV.HRV_AI.0', 'HRV.HRV_Ca.0', 'HRV.HRV_Cd.0', 'HRV.HRV_GI.0',
+#        'HRV.HRV_HF.0', 'HRV.HRV_LF.0', 'HRV.HRV_PI.0', 'HRV.HRV_SI.0',
+#        'HRV.HRV_C1a.0', 'HRV.HRV_C1d.0', 'HRV.HRV_C2a.0', 'HRV.HRV_C2d.0',
+#        'HRV.HRV_CSI.0', 'HRV.HRV_CVI.0', 'HRV.HRV_HFn.0', 'HRV.HRV_HTI.0',
+#        'HRV.HRV_LFn.0', 'HRV.HRV_PAS.0', 'HRV.HRV_PIP.0', 'HRV.HRV_PSS.0',
+#        'HRV.HRV_SD1.0', 'HRV.HRV_SD2.0', 'HRV.HRV_VHF.0',
+#        'HRV.HRV_ApEn.0', 'HRV.HRV_CVNN.0', 'HRV.HRV_CVSD.0',
+#        'HRV.HRV_IALS.0', 'HRV.HRV_LFHF.0', 'HRV.HRV_LnHF.0', 'HRV.HRV_SD1a.0',
+#        'HRV.HRV_SD1d.0', 'HRV.HRV_SD2a.0', 'HRV.HRV_SD2d.0', 'HRV.HRV_SDNN.0',
+#        'HRV.HRV_SDSD.0', 'HRV.HRV_TINN.0', 'HRV.HRV_IQRNN.0',
+#        'HRV.HRV_MCVNN.0', 'HRV.HRV_MadNN.0', 'HRV.HRV_RMSSD.0',
+#        'HRV.HRV_SDNNa.0', 'HRV.HRV_SDNNd.0', 'HRV.HRV_pNN20.0',
+#        'HRV.HRV_pNN50.0', 'HRV.HRV_MeanNN.0', 'HRV.HRV_SD1SD2.0',
+#        'HRV.HRV_SampEn.0', 'HRV.HRV_MedianNN.0', 'HRV.HRV_CSI_Modified.0'
+#     ]
 
-    for column_name in selected_X_columns:
-        logger.info(dataframe_hrv[column_name])
-        dataframe_hrv[column_name] = dataframe_hrv[column_name].apply(round_floats)
+#     for column_name in selected_X_columns:
+#         logger.info(dataframe_hrv[column_name])
+#         dataframe_hrv[column_name] = dataframe_hrv[column_name].apply(round_floats)
 
-    X = dataframe_hrv[selected_X_columns]
-    y = dataframe_hrv['stress']
+#     X = dataframe_hrv[selected_X_columns]
+#     y = dataframe_hrv['stress']
 
-    # tpot_classifer = do_tpot(generations=10, population_size=20, X=X, y=y)
+#     # tpot_classifer = do_tpot(generations=10, population_size=20, X=X, y=y)
 
-    prediction = random_forest_classfier(X=X, y=y, test_size=0.2, random_state=0, debug=True)
+#     prediction = random_forest_classfier(X=X, y=y, test_size=0.2, random_state=0, debug=True)
 
-    logger.info(prediction)
+#     logger.info(prediction)
 
-    return create_json_response(status_code, status, data, message = filtered_response.count())
+#     return create_json_response(status_code, status, data, message = filtered_response.count())
