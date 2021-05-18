@@ -105,9 +105,8 @@ public class DataCollector extends AppCompatActivity {
     public void checkId() {
         UUID uuid =UUID.randomUUID();
         uuidAsString = uuid.toString();
-        SendUrl sendUrl =new SendUrl();
         RequestQueue requestQueue= Volley.newRequestQueue(DataCollector.this);
-        String url=sendUrl.geturl()+"/uuid"; // change the url
+        String url=DataService.BaseUrl+"/uuid"; // change the url
         JSONObject jsonObject = new JSONObject();
         try {
             jsonObject.put("uuid",uuidAsString);
@@ -235,8 +234,7 @@ public class DataCollector extends AppCompatActivity {
                         batteryText.setText("Battery: " + intent.getStringExtra("battery") + "%");
                     }
                     if (intent.getStringExtra("ppg") != null) {
-                        PPGText.setText("Collecting");
-//                        PPGText.setText("PPG: " + intent.getStringExtra("ppg"));
+                        PPGText.setText("PPG: " + intent.getStringExtra("ppg"));
                     }
 
                     if (intent.getStringExtra("buttonState") != null) {

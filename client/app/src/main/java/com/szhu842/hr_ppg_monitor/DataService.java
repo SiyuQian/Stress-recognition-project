@@ -1,5 +1,6 @@
 package com.szhu842.hr_ppg_monitor;
 
+import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -7,6 +8,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -14,6 +16,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -58,13 +61,8 @@ import polar.com.sdk.api.model.PolarOhrPPIData;
 import polar.com.sdk.api.model.PolarSensorSetting;
 
 public class DataService extends Service {
-    /**
-     * The server URL of the API that process the PPG data
-     *
-     */
-    static SendUrl sendUrl =new SendUrl();
-    public static final String SERVER_URL = sendUrl.geturl()+"/stress?mode=hrv"; // change the url
-    ;
+
+    public static final String BaseUrl ="http://192.168.1.65/api/v1";
 
     /**
      * The frequency of sending the HTTP requests
@@ -105,11 +103,10 @@ public class DataService extends Service {
     private int hr = 0;
 
     private String battery = "";
-
     private String DEVICE_ID;
     private String fileName;
     private String deviceName;
-
+    private String errorMessage ="";
     private final String CHANNEL_ID = "com.szhu842";
     private final String CHANNEL_NAME = "data channel";
     private final int NOTIFICATION_ID = 1;
@@ -118,6 +115,12 @@ public class DataService extends Service {
     private long startTime;
     public JSONObject jsdata;
 
+    /**
+     * The server URL of the API that process the PPG data
+     *
+     */
+    public static final String SERVER_URL = BaseUrl+"/stress?mode=hrv"; // change the url
+    ;
     public DataService() {
     }
 
@@ -156,7 +159,6 @@ public class DataService extends Service {
         broadcastIntent.setClass(this, Restarter.class);
         this.sendBroadcast(broadcastIntent);
         unregisterReceiver(receiver);
-
         super.onDestroy();
     }
 
@@ -253,7 +255,6 @@ public class DataService extends Service {
                 @Override
                 public void deviceDisconnected(PolarDeviceInfo s) {
                     Log.d(TAG, "Device disconnected" + s);
-
                     Intent intent = new Intent("updatingState");
                     intent.putExtra("name", "Disconnected");
                     sendBroadcast(intent);
@@ -278,7 +279,7 @@ public class DataService extends Service {
                 @Override
                 public void accelerometerFeatureReady(String s) {
                     Log.d(TAG, "ACC Feature ready " + s);
-                    streamACC();
+                   // streamACC();
                 }
 
                 @Override
@@ -368,7 +369,7 @@ public class DataService extends Service {
                                     intent.putExtra("ppg", String.valueOf(ppgData));
                                     sendBroadcast(intent);
                                      if (sent) {
-                                       //writeToCsv();
+                                       writeToCsv();
                                        postRequest();
 
                                      }
@@ -419,6 +420,37 @@ public class DataService extends Service {
      *  ...
      * ]
      */
+
+    private void showNormalDialog(){
+        Log.d("Dialog", "xxxxx");
+        Toast.makeText(DataService.this, "Please wear the watch properly",Toast.LENGTH_LONG).show();
+//        AlertDialog alertDialog =
+//                new AlertDialog.Builder(this)
+//                        .setTitle("Error Message")
+//                        .setMessage("Please wear the watch properly")
+//                        .create();
+//
+//        alertDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+//        alertDialog.setPositiveButton("ok",
+//                new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialog, int which) {
+//                        //...To-do
+//                    }
+//                });
+//        normalDialog.setNegativeButton("cancle",
+//                new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialog, int which) {
+//                        //...To-do
+//                    }
+//                });
+//        normalDialog.show();
+    }
+
+
+
+
     public void postRequest() {
         long timeMillis = System.currentTimeMillis();
         SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss:SSS", Locale.ENGLISH);
@@ -466,6 +498,9 @@ public class DataService extends Service {
                 @Override
                 public void onErrorResponse(VolleyError error) {
                     Log.d("RESP", "onResponse: " + error);
+                    if(error.getMessage().contains("error")){
+                        showNormalDialog();
+                    }
                 }
             });
             requestQueue.add(jsonArrayRequest);
@@ -487,23 +522,25 @@ public class DataService extends Service {
              * Create the JSON array which will be sent to the server end
              */
             try {
-                // The single JSON object contains the data
-                JSONObject postData = new JSONObject();
-                postData.put("Device", deviceName);
-                postData.put("TimeDate",timeDate);
-                postData.put("Time",time);
-                postData.put("PPG", String.valueOf(ppgData));
-                postData.put("HR",String.valueOf(hr));
-                postData.put("uuid",uu_id);
+                if (counter % 2 == 0) {
+                    Log.d("entercounter",String.valueOf(counter));
+                    // The single JSON object contains the data
+                    JSONObject postData = new JSONObject();
+                    postData.put("Device", deviceName);
+                    postData.put("TimeDate", timeDate);
+                    postData.put("Time", time);
+                    postData.put("PPG", String.valueOf(ppgData));
+                    postData.put("HR", String.valueOf(hr));
+                    postData.put("uuid", uu_id);
 
-                httpRequestData.put(postData);
+                    httpRequestData.put(postData);
+                }
 //                Log.d(String.valueOf(postData), "postData");
 //                Log.d(String.valueOf(httpRequestData), "httpRequestData");
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
-
         counter++;
         Log.d(String.valueOf(counter),"counter");
     }
@@ -612,9 +649,11 @@ public class DataService extends Service {
                 String time = hours + ":" + minutes + ":" + seconds + ":" + (resulttime%1000);
 
                 List<String[]> data = new ArrayList<String[]>();
-                data.add(new String[]{deviceName, timeDate, time, String.valueOf(ppgData),
-                        String.valueOf(hr), String.valueOf(accX), String.valueOf(accY),
-                        String.valueOf(accZ)});
+                if (counter % 2 == 0) {
+                    data.add(new String[]{deviceName, timeDate, time, String.valueOf(ppgData),
+                            String.valueOf(hr), String.valueOf(accX), String.valueOf(accY),
+                            String.valueOf(accZ)});
+                }
 
                 writer.writeAll(data); // data is adding to csv
 
