@@ -69,7 +69,7 @@ def stress_index(request):
     dataframe = None
     hr_threshold = 3
     data = {}
-
+    
     if validate_http_request_method(request, 'POST', True) == False:
         return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles POST request.')
 
@@ -165,14 +165,16 @@ def stress_index(request):
     # add message into the data dict
     data['message'] = message
 
-    mean_value = hr_mean if mode == 'hr' and hr_mean != None else parsed['HRV_MeanNN']['0']
+    mean_value = hr_mean
 
     # Store response into Mysql database
     response_model = Response()
     response_model.device_code = device_code
     response_model.uuid = uuid
     response_model.mode = mode
-    response_model.mean = mean_value
+    response_model.hr_mean = mean_value
+    response_model.hrv_pnn50 = parsed['HRV_pNN50']['0']
+    response_model.hrv_rmssd = parsed['HRV_RMSSD']['0']
     response_model.response_body = data
     response_model.save()
 
