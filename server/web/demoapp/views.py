@@ -68,6 +68,8 @@ def stress_index(request):
     message = ''
     dataframe = None
     hr_threshold = 3
+    base_data_length = 5
+    hrv_threshold = 1.25
     data = {}
     
     if validate_http_request_method(request, 'POST', True) == False:
@@ -98,13 +100,14 @@ def stress_index(request):
 
     # Get the first value of the uuid column (as the device code value will never change from a same experiment)
     uuid = dataframe['uuid'].iloc[0]
+    filtered_response = Response.objects.filter(device_code=device_code, uuid=uuid)
 
     # Calculate the average hear rate based on HR column
     hr_mean = round(dataframe['HR'].astype(float).mean(axis=0), 2)
+    # Calculate the HRV RMSSD value from the base data (first n mins, e.g. 5)
+    hrv_rmssd_mean = list(filtered_response[:base_data_length].aggregate(Avg('hrv_rmssd')).values())[0]
 
     if mode == 'hr' :
-        filtered_response = Response.objects.filter(device_code=device_code, uuid=uuid)
-
         # compare the mean value with recent request
         if filtered_response.count() > 0 :
             # extract the recent mean
@@ -113,7 +116,7 @@ def stress_index(request):
         # if the changes is bigger than the pre-defined threshold
         if diff >= hr_threshold  :
             status = 'warning'
-            message = 'HR has been changed siginificantly, you probably in a stress.'
+            message = 'HRV RMSSD has been changed significantly. You probably under stress.'
 
 
         data = {
@@ -134,8 +137,8 @@ def stress_index(request):
         ppg_mean = dataframe['PPG'].astype(float).mean(skipna = True)
 
         normalized_ppg_data = dataframe['PPG'].astype(float).apply(normalize_data, mean = ppg_mean, std = ppd_std)
-
-        logger.info(normalized_ppg_data)
+            
+        # logger.info(normalized_ppg_data)
 
         # Clear the noise
         ppg_clean = nk.ppg_clean(normalized_ppg_data, sampling_rate=sample_rate)
@@ -160,6 +163,13 @@ def stress_index(request):
         
         result = hrv_indices.to_json()
         parsed = json.loads(result)
+
+        # compare the mean value with recent request
+        if filtered_response.count() > base_data_length :
+            # extract the recent mean
+            if parsed['HRV_RMSSD']['0'] > hrv_rmssd_mean * hrv_threshold:
+                status = 'warning'
+                message = 'HRV RMSSD has been changed significantly. You probably under stress.'
 
         data = {
             'mode': mode,
