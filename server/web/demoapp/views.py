@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from demoapp.models import Request, Response, Uuid
 from django.db.models import Avg
-from demoapp.utils import validate_http_request_method, create_json_response, convert_unit, round_floats
+from demoapp.utils import validate_http_request_method, create_json_response, normalize_data, round_floats
 import neurokit2 as nk
 import pandas as pd
 import json
@@ -125,13 +125,20 @@ def stress_index(request):
     elif mode == 'hrv':
         # logger.info('==================')
         # logger.info(dataframe['PPG'])
-        # logger.info(type['PPGW'])
+        # logger.info(type(dataframe['PPG']))
+        # logger.info(dataframe.dtypes)
         # logger.info(dataframe['PPG'].astype(float).div(1000000).to_numpy())
         # logger.info(type(dataframe['PPG'].astype(float).div(1000000)))
         # logger.info('==================')
+        ppd_std = dataframe['PPG'].astype(float).std(skipna = True)
+        ppg_mean = dataframe['PPG'].astype(float).mean(skipna = True)
+
+        normalized_ppg_data = dataframe['PPG'].astype(float).apply(normalize_data, mean = ppg_mean, std = ppd_std)
+
+        logger.info(normalized_ppg_data)
 
         # Clear the noise
-        ppg_clean = nk.ppg_clean(dataframe['PPG'].apply(convert_unit), sampling_rate=sample_rate)
+        ppg_clean = nk.ppg_clean(normalized_ppg_data, sampling_rate=sample_rate)
 
         # Peaks
         peaks = nk.ppg_findpeaks(ppg_clean, sampling_rate=sample_rate)

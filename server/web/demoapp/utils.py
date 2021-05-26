@@ -39,8 +39,8 @@ def create_json_response(status_code, status, data = {}, message = ''):
     logger.info("========================================================================")
     return JsonResponse(body, status = status_code)
 
-def convert_unit(x):
-    return float(x) / 1000000
+def normalize_data(x, mean, std):
+    return (x - mean) / std
 
 def round_floats(row, float_points = 2):
     return round(row, float_points)
