@@ -105,7 +105,7 @@ def stress_index(request):
     # Calculate the average hear rate based on HR column
     hr_mean = round(dataframe['HR'].astype(float).mean(axis=0), 2)
     # Calculate the HRV RMSSD value from the base data (first n mins, e.g. 5)
-    hrv_rmssd_mean = list(filtered_response[:base_data_length].aggregate(Avg('hrv_rmssd')).values())[0]
+    hrv_rmssd_mean = list(filtered_response[1:base_data_length].aggregate(Avg('hrv_rmssd')).values())[0]
 
     if mode == 'hr' :
         # compare the mean value with recent request
