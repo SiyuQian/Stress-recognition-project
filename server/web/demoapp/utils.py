@@ -39,11 +39,15 @@ def create_json_response(status_code, status, data = {}, message = ''):
     logger.info("========================================================================")
     return JsonResponse(body, status = status_code)
 
-def convert_unit(x):
-    return float(x) / 1000000
+def normalize_data(x, mean, std):
+    return (x - mean) / std
 
 def round_floats(row, float_points = 2):
     return round(row, float_points)
+
+# def stress_classifier(row):
+#     is_stress = True if row['hrv_rmssd'] > row['hrv_rmssd'] * 1.16 else False
+#     return is_stress
 
 # def stress_classifier(row):
 #     is_stress = 1 if row['hr_mean'] > 95 else 0

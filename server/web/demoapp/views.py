@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from demoapp.models import Request, Response, Uuid
 from django.db.models import Avg
-from demoapp.utils import validate_http_request_method, create_json_response, convert_unit, round_floats
+from demoapp.utils import validate_http_request_method, create_json_response, normalize_data, round_floats
 import neurokit2 as nk
 import pandas as pd
 import json
@@ -68,8 +68,10 @@ def stress_index(request):
     message = ''
     dataframe = None
     hr_threshold = 3
+    base_data_length = 11
+    hrv_threshold = 1.09
     data = {}
-
+    
     if validate_http_request_method(request, 'POST', True) == False:
         return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles POST request.')
 
@@ -98,13 +100,14 @@ def stress_index(request):
 
     # Get the first value of the uuid column (as the device code value will never change from a same experiment)
     uuid = dataframe['uuid'].iloc[0]
+    filtered_response = Response.objects.filter(device_code=device_code, uuid=uuid)
 
     # Calculate the average hear rate based on HR column
     hr_mean = round(dataframe['HR'].astype(float).mean(axis=0), 2)
+    # Calculate the HRV RMSSD value from the base data (first n mins, e.g. 5)
+    hrv_rmssd_mean = list(filtered_response[1:base_data_length].aggregate(Avg('hrv_rmssd')).values())[0]
 
     if mode == 'hr' :
-        filtered_response = Response.objects.filter(device_code=device_code, uuid=uuid)
-
         # compare the mean value with recent request
         if filtered_response.count() > 0 :
             # extract the recent mean
@@ -113,7 +116,7 @@ def stress_index(request):
         # if the changes is bigger than the pre-defined threshold
         if diff >= hr_threshold  :
             status = 'warning'
-            message = 'HR has been changed siginificantly, you probably in a stress.'
+            message = 'HRV RMSSD has been changed significantly. You probably under stress.'
 
 
         data = {
@@ -125,13 +128,20 @@ def stress_index(request):
     elif mode == 'hrv':
         # logger.info('==================')
         # logger.info(dataframe['PPG'])
-        # logger.info(type['PPGW'])
+        # logger.info(type(dataframe['PPG']))
+        # logger.info(dataframe.dtypes)
         # logger.info(dataframe['PPG'].astype(float).div(1000000).to_numpy())
         # logger.info(type(dataframe['PPG'].astype(float).div(1000000)))
         # logger.info('==================')
+        ppd_std = dataframe['PPG'].astype(float).std(skipna = True)
+        ppg_mean = dataframe['PPG'].astype(float).mean(skipna = True)
+
+        normalized_ppg_data = dataframe['PPG'].astype(float).apply(normalize_data, mean = ppg_mean, std = ppd_std)
+            
+        # logger.info(normalized_ppg_data)
 
         # Clear the noise
-        ppg_clean = nk.ppg_clean(dataframe['PPG'].apply(convert_unit), sampling_rate=sample_rate)
+        ppg_clean = nk.ppg_clean(normalized_ppg_data, sampling_rate=sample_rate)
 
         # Peaks
         peaks = nk.ppg_findpeaks(ppg_clean, sampling_rate=sample_rate)
@@ -154,6 +164,13 @@ def stress_index(request):
         result = hrv_indices.to_json()
         parsed = json.loads(result)
 
+        # compare the mean value with recent request
+        if filtered_response.count() > base_data_length :
+            # extract the recent mean
+            if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_mean :
+                status = 'warning'
+                message = 'HRV RMSSD has been changed significantly. You probably under stress.'
+
         data = {
             'mode': mode,
             'device': device_code,
@@ -165,14 +182,16 @@ def stress_index(request):
     # add message into the data dict
     data['message'] = message
 
-    mean_value = hr_mean if mode == 'hr' and hr_mean != None else parsed['HRV_MeanNN']['0']
+    mean_value = hr_mean
 
     # Store response into Mysql database
     response_model = Response()
     response_model.device_code = device_code
     response_model.uuid = uuid
     response_model.mode = mode
-    response_model.mean = mean_value
+    response_model.hr_mean = mean_value
+    response_model.hrv_pnn50 = parsed['HRV_pNN50']['0']
+    response_model.hrv_rmssd = parsed['HRV_RMSSD']['0']
     response_model.response_body = data
     response_model.save()
 
