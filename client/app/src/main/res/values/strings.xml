@@ -3,6 +3,7 @@
     <string name="ppgText">PPG:</string>
     <string name="idText">ID:</string>
     <string name="batteryText">Battery:</string>
+    <string name="MessageText">Message:</string>
     <string name="send_dataText">Start Recording</string>
     <string name="record">Record</string>
     <string name="info_Text">This is an App designed for collecting data from Polar OH1, please press the connect button and find the Polar device to begin</string>

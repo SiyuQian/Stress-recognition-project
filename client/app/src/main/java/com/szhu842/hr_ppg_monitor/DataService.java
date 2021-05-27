@@ -62,7 +62,11 @@ import polar.com.sdk.api.model.PolarSensorSetting;
 
 public class DataService extends Service {
 
-    public static final String BaseUrl ="http://192.168.1.65/api/v1";
+    enum OHR_DATA_TYPE {
+        PPG3_AMBIENT1, UNKNOWN;
+    }
+
+    public static final String BaseUrl ="http://192.168.1.79/api/v1";
 
     /**
      * The frequency of sending the HTTP requests
@@ -79,12 +83,13 @@ public class DataService extends Service {
      */
     public int secondStorage = 0;
 
+
     /**
      * The HTTP request data container
      */
     public JSONArray httpRequestData = new JSONArray();
 
-
+    public int received_packet_counter = 0;
     public PolarBleApi api;
     private String TAG = "DataService";
 //    private Context classContext;
@@ -96,6 +101,10 @@ public class DataService extends Service {
     private boolean sent = false;
 
     private float ppgData = 0.0f;
+    private float ppgData0 = 0.0f;
+    private float ppgData1 = 0.0f;
+    private float ppgData2 = 0.0f;
+
     private float ppiData = 0.0f;
     private int accX = 0;
     private int accY = 0;
@@ -106,7 +115,7 @@ public class DataService extends Service {
     private String DEVICE_ID;
     private String fileName;
     private String deviceName;
-    private String errorMessage ="";
+    private String errorMessage ="Stay relaxed 5 mins plz";
     private final String CHANNEL_ID = "com.szhu842";
     private final String CHANNEL_NAME = "data channel";
     private final int NOTIFICATION_ID = 1;
@@ -322,9 +331,7 @@ public class DataService extends Service {
                     Intent intent = new Intent("updatingState");
                     intent.putExtra("battery", battery);
                     sendBroadcast(intent);
-
                 }
-
                 @Override
                 public void hrNotificationReceived(String s,PolarHrData polarHrData) {
                     hr = polarHrData.hr;
@@ -357,16 +364,28 @@ public class DataService extends Service {
         if (ppgDisposable == null) {
             Log.d(TAG, "streamPPG: start");
             ppgDisposable =
-                    api.requestPpgSettings(DEVICE_ID).toFlowable().flatMap((Function<PolarSensorSetting,
-                            Publisher<PolarOhrPPGData>>) sensorSetting -> api.startOhrPPGStreaming(DEVICE_ID,
-                            sensorSetting.maxSettings())).observeOn(AndroidSchedulers.mainThread()).subscribe(
-                            polarPPGData -> {
+                    api.requestPpgSettings(DEVICE_ID)
+                            .toFlowable()
+                            .flatMap((Function<PolarSensorSetting, Publisher<PolarOhrPPGData>>) sensorSetting -> api.startOhrPPGStreaming(DEVICE_ID, sensorSetting.maxSettings()))
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe(
+                                polarPPGData -> {
+                                   // PolarOhrPPGData.PolarOhrPPGSample data = polarPPGData.samples.get(1);
+
                                 for (PolarOhrPPGData.PolarOhrPPGSample data : polarPPGData.samples) {
+//                                    Log.d("DEBUG", "Packet #: " + received_packet_counter + " timestamp: " + polarPPGData.timeStamp);
+//                                    Log.d("DEBUG", "Packet #: " + received_packet_counter + " samples size: " + polarPPGData.samples.size());
+//                                    received_packet_counter++;
 //                                        ppgDataObservable.onNext(data);
-                                    ppgData = (data.ppg0 + data.ppg1 + data.ppg2) / 3.0f;
+                                   // ppgData = (data.ppg0 + data.ppg1 + data.ppg2) / 3.0f;
+                                    ppgData = data.ppg1;
+                                    ppgData0=data.ppg0;
+//                                    ppgData1=data.ppg1;
+                                    ppgData2=data.ppg2;
 
                                     Intent intent = new Intent("updatingState");
                                     intent.putExtra("ppg", String.valueOf(ppgData));
+
                                     sendBroadcast(intent);
                                      if (sent) {
                                        writeToCsv();
@@ -421,35 +440,6 @@ public class DataService extends Service {
      * ]
      */
 
-    private void showNormalDialog(){
-        Log.d("Dialog", "xxxxx");
-        Toast.makeText(DataService.this, "Please wear the watch properly",Toast.LENGTH_LONG).show();
-//        AlertDialog alertDialog =
-//                new AlertDialog.Builder(this)
-//                        .setTitle("Error Message")
-//                        .setMessage("Please wear the watch properly")
-//                        .create();
-//
-//        alertDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-//        alertDialog.setPositiveButton("ok",
-//                new DialogInterface.OnClickListener() {
-//                    @Override
-//                    public void onClick(DialogInterface dialog, int which) {
-//                        //...To-do
-//                    }
-//                });
-//        normalDialog.setNegativeButton("cancle",
-//                new DialogInterface.OnClickListener() {
-//                    @Override
-//                    public void onClick(DialogInterface dialog, int which) {
-//                        //...To-do
-//                    }
-//                });
-//        normalDialog.show();
-    }
-
-
-
 
     public void postRequest() {
         long timeMillis = System.currentTimeMillis();
@@ -498,8 +488,17 @@ public class DataService extends Service {
                 @Override
                 public void onErrorResponse(VolleyError error) {
                     Log.d("RESP", "onResponse: " + error);
-                    if(error.getMessage().contains("error")){
-                        showNormalDialog();
+                    if(error.getMessage().contains("stress")){
+                        errorMessage ="You are under stress";
+                        Intent intent = new Intent("updatingState");
+                        intent.putExtra("message", errorMessage);
+                        sendBroadcast(intent);
+                    }
+                    else {
+                        errorMessage ="Please stay relaxed 5 mins and do not move your arm";
+                        Intent intent = new Intent("updatingState");
+                        intent.putExtra("message", errorMessage);
+                        sendBroadcast(intent);
                     }
                 }
             });
@@ -522,7 +521,7 @@ public class DataService extends Service {
              * Create the JSON array which will be sent to the server end
              */
             try {
-                if (counter % 2 == 0) {
+                //if (counter % 2 == 0) {
                     Log.d("entercounter",String.valueOf(counter));
                     // The single JSON object contains the data
                     JSONObject postData = new JSONObject();
@@ -534,7 +533,7 @@ public class DataService extends Service {
                     postData.put("uuid", uu_id);
 
                     httpRequestData.put(postData);
-                }
+                //}
 //                Log.d(String.valueOf(postData), "postData");
 //                Log.d(String.valueOf(httpRequestData), "httpRequestData");
             } catch (JSONException e) {
@@ -543,6 +542,89 @@ public class DataService extends Service {
         }
         counter++;
         Log.d(String.valueOf(counter),"counter");
+    }
+
+    public void writeToCsv() {
+        if (sent) {
+            String csvRoot = (Environment.getExternalStorageDirectory().getAbsolutePath() + "/PPGData"); // Here csv file name is MyCsvFile.csv
+            File csvFolder = new File(csvRoot);
+            if (!csvFolder.exists()) {
+                csvFolder.mkdir();
+                Log.d(TAG, "writeToCsv: making dir");
+            }
+            String filePath = csvRoot + "/" + fileName + ".csv";
+            Log.d(TAG, "writeToCsv: " + filePath);
+            File csvFile = new File(filePath);
+            if (!csvFile.exists()) {
+
+                CSVWriter writer = null;
+                try {
+                    writer = new CSVWriter(new FileWriter(csvFile));
+                    List<String[]> data = new ArrayList<String[]>();
+                    data.add(new String[]{"Device", "TimeDate", "Time", "PPG", "HR", "AccX", "AccY", "AccZ","ppg0","ppg2"});
+                    writer.writeAll(data); // data is adding to csv
+
+                    writer.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            CSVWriter writer = null;
+            try {
+                writer = new CSVWriter(new FileWriter(csvFile, true));
+                long timeMillis = System.currentTimeMillis();
+                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss:SSS", Locale.ENGLISH);
+                Date resultdate = new Date(timeMillis);
+                String timeDate = sdf.format(resultdate) + "";
+                long resulttime = timeMillis - startTime;
+                int seconds = (int) (resulttime / 1000) % 60 ;
+                int minutes = (int) ((resulttime / (1000*60)) % 60);
+                int hours   = (int) ((resulttime / (1000*60*60)) % 24);
+                String time = hours + ":" + minutes + ":" + seconds + ":" + (resulttime%1000);
+
+                List<String[]> data = new ArrayList<String[]>();
+                 if (counter % 2 == 0) {
+                data.add(new String[]{deviceName, timeDate, time, String.valueOf(ppgData),
+                        String.valueOf(hr), String.valueOf(accX), String.valueOf(accY),
+                        String.valueOf(accZ),String.valueOf(ppgData0),String.valueOf(ppgData2)});
+                 }
+
+                writer.writeAll(data); // data is adding to csv
+
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+
+    private void showNormalDialog(){
+        Log.d("Dialog", "xxxxx");
+        Toast.makeText(DataService.this, "Please wear the watch properly",Toast.LENGTH_LONG).show();
+//        AlertDialog alertDialog =
+//                new AlertDialog.Builder(this)
+//                        .setTitle("Error Message")
+//                        .setMessage("Please wear the watch properly")
+//                        .create();
+//
+//        alertDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+//        alertDialog.setPositiveButton("ok",
+//                new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialog, int which) {
+//                        //...To-do
+//                    }
+//                });
+//        normalDialog.setNegativeButton("cancle",
+//                new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialog, int which) {
+//                        //...To-do
+//                    }
+//                });
+//        normalDialog.show();
     }
 
     public void streamACC() {
@@ -610,60 +692,6 @@ public class DataService extends Service {
         Log.d(TAG, "setDeviceName: " + fileName + ".csv");
     }
 
-    public void writeToCsv() {
-        if (sent) {
-            String csvRoot = (Environment.getExternalStorageDirectory().getAbsolutePath() + "/PPGData"); // Here csv file name is MyCsvFile.csv
-            File csvFolder = new File(csvRoot);
-            if (!csvFolder.exists()) {
-                csvFolder.mkdir();
-                Log.d(TAG, "writeToCsv: making dir");
-            }
-            String filePath = csvRoot + "/" + fileName + ".csv";
-            Log.d(TAG, "writeToCsv: " + filePath);
-            File csvFile = new File(filePath);
-            if (!csvFile.exists()) {
-
-                CSVWriter writer = null;
-                try {
-                    writer = new CSVWriter(new FileWriter(csvFile));
-                    List<String[]> data = new ArrayList<String[]>();
-                    data.add(new String[]{"Device", "TimeDate", "Time", "PPG", "HR", "AccX", "AccY", "AccZ"});
-                    writer.writeAll(data); // data is adding to csv
-
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            CSVWriter writer = null;
-            try {
-                writer = new CSVWriter(new FileWriter(csvFile, true));
-                long timeMillis = System.currentTimeMillis();
-                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss:SSS", Locale.ENGLISH);
-                Date resultdate = new Date(timeMillis);
-                String timeDate = sdf.format(resultdate) + "";
-                long resulttime = timeMillis - startTime;
-                int seconds = (int) (resulttime / 1000) % 60 ;
-                int minutes = (int) ((resulttime / (1000*60)) % 60);
-                int hours   = (int) ((resulttime / (1000*60*60)) % 24);
-                String time = hours + ":" + minutes + ":" + seconds + ":" + (resulttime%1000);
-
-                List<String[]> data = new ArrayList<String[]>();
-                if (counter % 2 == 0) {
-                    data.add(new String[]{deviceName, timeDate, time, String.valueOf(ppgData),
-                            String.valueOf(hr), String.valueOf(accX), String.valueOf(accY),
-                            String.valueOf(accZ)});
-                }
-
-                writer.writeAll(data); // data is adding to csv
-
-                writer.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-    }
 
     public void startSending() {
         sent = true;
@@ -698,6 +726,7 @@ public class DataService extends Service {
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+
             String action = intent.getAction();
             if (action.equals("sendingState")) {
                 uu_id= intent.getStringExtra("gotUuid");
@@ -716,6 +745,7 @@ public class DataService extends Service {
                 sendintent.putExtra("ppg", String.valueOf(ppgData));
                 sendintent.putExtra("hr", String.valueOf(hr));
                 sendintent.putExtra("buttonState", String.valueOf(sent));
+                sendintent.putExtra("message", errorMessage);
                 sendBroadcast(sendintent);
             } else if (action.equals("turnoffService")) {
                 Log.d(TAG, "onReceive: turnoffService");
