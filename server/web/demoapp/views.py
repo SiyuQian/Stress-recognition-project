@@ -4,11 +4,13 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from demoapp.models import Request, Response, Uuid
 from django.db.models import Avg
-from demoapp.utils import validate_http_request_method, create_json_response, normalize_data, round_floats
+from demoapp.utils import validate_http_request_method, create_json_response, normalize_data, round_floats, get_time_diff, generate_csv
 import neurokit2 as nk
 import pandas as pd
 import json
 import logging
+import numpy as np
+import matplotlib.pyplot as plt
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -196,6 +198,60 @@ def stress_index(request):
     response_model.save()
 
     return create_json_response(status_code, status, data, message = message)
+
+
+@csrf_exempt
+def generate_image_index(request):
+    if validate_http_request_method(request, 'GET', True) == False :
+        return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles GET request.')
+    
+    # The API needs two params to display the diagram and information about the experiment
+    # device_code, uuid
+    device_code = request.GET.get('device_code')
+    uuid = request.GET.get('uuid')
+
+    start = ''
+    end = ''
+    experiment_length = ''
+    row_number = 1
+
+    if not device_code or not uuid:
+        return create_json_response(500, 'error', message = 'Bad request! You have to identify device code and uuid to render the page correctly.')
+
+    responses = Response.objects.filter(device_code=device_code, uuid=uuid)
+    records = responses.count()
+    if records:
+        start = responses.first().created_at
+        end = responses.last().created_at
+        experiment_length = get_time_diff(int(start.strftime('%s')), int(end.strftime('%s')))
+        rows = responses.values()
+        # Preprocess the value
+        # Add minute column
+        for row in rows:
+            rows[row_number-1]['minute'] = row_number
+            row_number+=1
+        
+        df = pd.DataFrame(rows)
+        df['minute'] = df['minute'].astype(int)
+        df['hrv_rmssd'] = df['hrv_rmssd'].astype(float)
+
+        # fig, ax = plt.subplots()
+        # df.plot(x='minute', y='hrv_rmssd').line()
+        # filePath = "./demoapp/static/images/" + device_code + "/" + uuid + "/"
+        # mkDir(filePath)
+        # fig.saveFig(filePath + 'line_chart.png')
+        generate_csv(rows, device_code, uuid, 'response')
+
+    return render(request, "report.html", {
+        'device_code': device_code,
+        'uuid': uuid,
+        'records': records,
+        'start': start,
+        'end': end,
+        'experiment_length': experiment_length,
+        'data': df['hrv_rmssd'].tolist(),
+        'labels': df['minute'].tolist()
+    })
 
 # @csrf_exempt
 # def ml_index(request):

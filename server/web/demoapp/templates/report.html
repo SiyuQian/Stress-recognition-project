@@ -1,0 +1,107 @@
+{% load static %}
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.2.0/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.0.1/chartjs-plugin-annotation.min.js"></script>
+
+<div class="container pt-5">
+    <h1>Result</h1>
+
+    {% if records == 0 %}
+        <strong>The experiment does not exist in the current database.</strong>
+    {% else %}
+        <div class="pb-3">
+            <h2>Experiment Info</h2>
+            <ul>
+                <li><b>Device Code:</b>&nbsp;{{ device_code }}</li>
+                <li><b>UUID:</b>&nbsp; {{ uuid }}</li>
+                <li><b>Records:</b>&nbsp; {{ records }}</li>
+                <li><b>Started at:</b>&nbsp; {{ start }}</li>
+                <li><b>Ended at:</b>&nbsp; {{ end }}</li>
+                <li><b>Time Length:</b>&nbsp; {{ experiment_length }} <b>minutes</b></li>
+            </ul>
+        </div>
+
+        <h2>Content</h2>
+            <div>
+                <h4>RMSSD vs Minute Line Chart</h4>
+                <canvas id="line-chart"></canvas>
+            </div>
+            
+            <div class="pt-5 pb-5">
+                <h2>Additional</h2>
+                Download the experiment data: <a href="{% static "datasets/"|add:device_code|add:"/"|add:uuid|add:"/response.csv" %}" download="response.csv">Click here</a>
+            </div>
+    {% endif %}
+</div>
+
+<script>
+    var stressEvent = ["Start Game", "End Game"];
+    var stressTimeLabel = [10, 20];
+    var detectedPoints = [11, 20, 30];
+
+    var annotations = stressTimeLabel.map(function(timeLabel, index) {
+        return {
+            type: 'line',
+            id: 'vline' + index,
+            scaleID: 'x-axis-0',
+            xMin: timeLabel,
+            xMax: timeLabel,
+            borderColor: 'green',
+            borderWidth: 1,
+            label: {
+                enabled: true,
+                position: "center",
+                content: stressEvent[index]
+            }
+        }
+    });
+
+    detectedPoints.map(function(point, index) {
+        var annotat = {
+          type: 'point',
+          id: 'dp' + index, 
+          scaleID: 'detected-point',
+          xValue: point,
+          yValue: 600,
+          borderWidth: 2,
+          radius: 5,
+          display: true,
+          backgroundColor: 'rgba(255, 99, 132, 0.25)'
+        };
+    
+        annotations.push(annotat);
+    });
+
+    var config = {
+      type: 'line',
+      data: {
+        datasets: [
+            {
+                label: 'RMSSD',
+                data: {{ data | safe }},
+                borderColor: "#1EAEDB",
+                backgroundColor: "#1EAEDB0D",
+            }
+        ],
+        labels: {{ labels | safe }}
+      },
+      options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'RMSSD vs Minute',
+            },
+            annotation: {
+                drawTime: "afterDatasetsDraw",
+                annotations: annotations
+            }
+        }
+      }
+    };
+    
+    window.onload = function() {
+        var ctx = document.getElementById('line-chart').getContext('2d');
+        window.lineChart = new Chart(ctx, config);
+    };
+</script>

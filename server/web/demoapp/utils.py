@@ -4,6 +4,8 @@ from django.http import JsonResponse
 # from sklearn.ensemble import RandomForestRegressor
 # from tpot import TPOTClassifier
 import numpy as np
+import csv
+import os
 
 
 import logging
@@ -44,6 +46,21 @@ def normalize_data(x, mean, std):
 
 def round_floats(row, float_points = 2):
     return round(row, float_points)
+
+def get_time_diff(start, end):
+    return round((end - start) / 60, 1)
+
+def generate_csv(values, device_code, uuid, filename):
+    header = values[0].keys()
+    # @todo: remove the hard coded file path
+    filePath = "./demoapp/static/datasets/" + device_code + "/" + uuid + "/"
+    if not os.path.isdir(filePath):
+        os.makedirs(filePath)
+
+    with open(filePath + filename + ".csv", "w", newline='') as output_file:
+        dict_writer = csv.DictWriter(output_file, header)
+        dict_writer.writeheader()
+        dict_writer.writerows(values)
 
 # def stress_classifier(row):
 #     is_stress = True if row['hrv_rmssd'] > row['hrv_rmssd'] * 1.16 else False
