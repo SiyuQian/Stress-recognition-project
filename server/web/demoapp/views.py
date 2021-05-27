@@ -69,7 +69,7 @@ def stress_index(request):
     dataframe = None
     hr_threshold = 3
     base_data_length = 5
-    hrv_threshold = 1.25
+    hrv_threshold = 1.09
     data = {}
     
     if validate_http_request_method(request, 'POST', True) == False:
@@ -167,7 +167,7 @@ def stress_index(request):
         # compare the mean value with recent request
         if filtered_response.count() > base_data_length :
             # extract the recent mean
-            if parsed['HRV_RMSSD']['0'] > hrv_rmssd_mean * hrv_threshold:
+            if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_mean :
                 status = 'warning'
                 message = 'HRV RMSSD has been changed significantly. You probably under stress.'
 
