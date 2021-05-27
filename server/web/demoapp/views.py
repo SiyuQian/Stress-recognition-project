@@ -67,7 +67,7 @@ def stress_index(request):
     status = 'success'
     message = ''
     dataframe = None
-    hr_threshold = 3
+    hr_threshold = 1.05
     base_data_length = 11
     hrv_threshold = 1.09
     data = {}
@@ -106,12 +106,13 @@ def stress_index(request):
     hr_mean = round(dataframe['HR'].astype(float).mean(axis=0), 2)
     # Calculate the HRV RMSSD value from the base data (first n mins, e.g. 5)
     hrv_rmssd_mean = list(filtered_response[1:base_data_length].aggregate(Avg('hrv_rmssd')).values())[0]
+    base_hr_mean = list(filtered_response[1:base_data_length].aggregate(Avg('mean')).values())[0]
 
     if mode == 'hr' :
         # compare the mean value with recent request
         if filtered_response.count() > 0 :
             # extract the recent mean
-            diff = hr_mean - list(filtered_response.aggregate(Avg('mean')).values())[0]
+            diff = hr_mean - base_hr_mean
 
         # if the changes is bigger than the pre-defined threshold
         if diff >= hr_threshold  :
@@ -137,7 +138,7 @@ def stress_index(request):
         ppg_mean = dataframe['PPG'].astype(float).mean(skipna = True)
 
         normalized_ppg_data = dataframe['PPG'].astype(float).apply(normalize_data, mean = ppg_mean, std = ppd_std)
-            
+
         # logger.info(normalized_ppg_data)
 
         # Clear the noise
@@ -160,14 +161,14 @@ def stress_index(request):
             }
             data['message'] = message
             return create_json_response(status_code, status, data, message = message)
-        
+
         result = hrv_indices.to_json()
         parsed = json.loads(result)
 
         # compare the mean value with recent request
         if filtered_response.count() > base_data_length :
             # extract the recent mean
-            if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_mean :
+            if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_mean and hr_mean > base_hr_mean * hr_threshold:
                 status = 'warning'
                 message = 'HRV RMSSD has been changed significantly. You probably under stress.'
 
