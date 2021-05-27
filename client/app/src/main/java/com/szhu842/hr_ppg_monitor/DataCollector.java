@@ -52,6 +52,7 @@ public class DataCollector extends AppCompatActivity {
     public TextView deviceIDText;
     private TextView batteryText;
     private TextView PPGText;
+    private TextView MessageText;
     private Button recordDataBtn;
     private Button stopServiceBtn;
     private DataService dataService;
@@ -72,7 +73,7 @@ public class DataCollector extends AppCompatActivity {
         PPGText = findViewById(R.id.ppgText);
         recordDataBtn = findViewById(R.id.recordDataBtn);
         stopServiceBtn = findViewById(R.id.stopServiceBtn);
-
+        MessageText =findViewById(R.id.messageText);
         startDataService();
 
         IntentFilter filter = new IntentFilter();
@@ -140,7 +141,7 @@ public class DataCollector extends AppCompatActivity {
     }
 
 
-        @Override
+    @Override
     protected void onStart() {
         super.onStart();
     }
@@ -236,7 +237,9 @@ public class DataCollector extends AppCompatActivity {
                     if (intent.getStringExtra("ppg") != null) {
                         PPGText.setText("PPG: " + intent.getStringExtra("ppg"));
                     }
-
+                    if (intent.getStringExtra("message") != null) {
+                        MessageText.setText("Message: " + intent.getStringExtra("message"));
+                    }
                     if (intent.getStringExtra("buttonState") != null) {
                         if (intent.getStringExtra("buttonState").equals("true")) {
                             recordDataBtn.setText("Stop Recording");
