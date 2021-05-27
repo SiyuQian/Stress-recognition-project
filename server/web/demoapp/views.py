@@ -68,7 +68,7 @@ def stress_index(request):
     message = ''
     dataframe = None
     hr_threshold = 3
-    base_data_length = 5
+    base_data_length = 11
     hrv_threshold = 1.09
     data = {}
     
