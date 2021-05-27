@@ -16,6 +16,7 @@ class Response(models.Model):
 	hrv_pnn50 = models.CharField(max_length=50, default='')
 	hrv_rmssd = models.CharField(max_length=50, default='')
 	hr_mean = models.CharField(max_length=50, default='')
+	status = models.CharField(max_length=50, default='')
 	response_body = models.JSONField()
 	created_at = models.DateTimeField(auto_now_add=True)
 

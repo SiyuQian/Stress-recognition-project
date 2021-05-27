@@ -191,6 +191,7 @@ def stress_index(request):
     response_model.device_code = device_code
     response_model.uuid = uuid
     response_model.mode = mode
+    response_model.status = status
     response_model.hr_mean = mean_value
     response_model.hrv_pnn50 = parsed['HRV_pNN50']['0']
     response_model.hrv_rmssd = parsed['HRV_RMSSD']['0']
