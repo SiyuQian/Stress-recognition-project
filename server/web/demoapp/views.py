@@ -70,7 +70,7 @@ def stress_index(request):
     message = ''
     dataframe = None
     hr_threshold = 3
-    base_data_length = 11
+    base_data_length = 21
     hrv_threshold = 1.09
     data = {}
     
@@ -215,21 +215,39 @@ def generate_image_index(request):
     end = ''
     experiment_length = ''
     row_number = 1
+    base_data_length = 21
+    outlier_threshold = 3
 
     if not device_code or not uuid:
         return create_json_response(500, 'error', message = 'Bad request! You have to identify device code and uuid to render the page correctly.')
 
     responses = Response.objects.filter(device_code=device_code, uuid=uuid)
+    # Calculate the HRV RMSSD value from the base data (first n mins, e.g. 5)
+    hrv_rmssd_mean = list(responses[1:base_data_length].aggregate(Avg('hrv_rmssd')).values())[0]
     records = responses.count()
     if records:
         start = responses.first().created_at
         end = responses.last().created_at
         experiment_length = get_time_diff(int(start.strftime('%s')), int(end.strftime('%s')))
         rows = responses.values()
+        detected_stress_x = []
+        detected_stress_y = []
         # Preprocess the value
-        # Add minute column
+        
         for row in rows:
-            rows[row_number-1]['minute'] = row_number
+            current_row_number = row_number-1
+            # Data smoothing, Remove outliers
+            if float(rows[current_row_number]['hrv_rmssd']) > hrv_rmssd_mean * outlier_threshold:
+                rows[current_row_number]['hrv_rmssd'] = hrv_rmssd_mean 
+
+            # Add minute column
+            rows[current_row_number]['minute'] = row_number
+
+            # Form detected point
+            if rows[current_row_number]['status'] == 'warning':
+                detected_stress_x.append(rows[current_row_number]['minute'])
+                detected_stress_y.append(rows[current_row_number]['hrv_rmssd'])
+            
             row_number+=1
         
         df = pd.DataFrame(rows)
@@ -251,7 +269,9 @@ def generate_image_index(request):
         'end': end,
         'experiment_length': experiment_length,
         'data': df['hrv_rmssd'].tolist(),
-        'labels': df['minute'].tolist()
+        'labels': df['minute'].tolist(),
+        'detected_stress_x': detected_stress_x,
+        'detected_stress_y': detected_stress_y
     })
 
 # @csrf_exempt
