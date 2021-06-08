@@ -4,7 +4,12 @@ from django.db.models import JSONField
 # Create your models here.
 
 class Request(models.Model):
-	request_body = models.JSONField()
+	device = models.CharField(max_length=50, default='')
+	hr = models.IntegerField(default=0)
+	ppg = models.FloatField(default=0.0)
+	uuid = models.CharField(max_length=50, default='')
+	time = models.CharField(max_length=50, default='')
+	timedate = models.CharField(max_length=50, default='')
 	created_at = models.DateTimeField(auto_now_add=True)
 
 
@@ -16,7 +21,8 @@ class Response(models.Model):
 	hrv_pnn50 = models.CharField(max_length=50, default='')
 	hrv_rmssd = models.CharField(max_length=50, default='')
 	hr_mean = models.CharField(max_length=50, default='')
-	status = models.CharField(max_length=50, default='')
+	status_basic = models.CharField(max_length=50, default='')
+	status_sliding = models.CharField(max_length=50, default='')
 	response_body = models.JSONField()
 	created_at = models.DateTimeField(auto_now_add=True)
 

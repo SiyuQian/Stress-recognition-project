@@ -50,6 +50,10 @@ def round_floats(row, float_points = 2):
 def get_time_diff(start, end):
     return round((end - start) / 60, 1)
 
+def mkDir(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
 def generate_csv(values, device_code, uuid, filename):
     header = values[0].keys()
     # @todo: remove the hard coded file path

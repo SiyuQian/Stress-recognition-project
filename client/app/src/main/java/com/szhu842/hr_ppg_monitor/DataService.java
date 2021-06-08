@@ -66,12 +66,12 @@ public class DataService extends Service {
         PPG3_AMBIENT1, UNKNOWN;
     }
 
-    public static final String BaseUrl ="http://192.168.1.79/api/v1";
+    public static final String BaseUrl ="http://192.168.1.75/api/v1";
 
     /**
-     * The frequency of sending the HTTP requests
+     * The frequency of sending the HTTP requests / seconds
      */
-    public static final int FREQUENCY = 59;
+    public static final int FREQUENCY = 12;
 
     /**
      * The boolean flag to determine if a request is sent for the current second
@@ -461,7 +461,9 @@ public class DataService extends Service {
          * when the counter having the remainder of 20 then the program should send the request
          * e.g 0s, 20s, 40s, 60s
          */
-        Log.d(String.valueOf(timeMillis % FREQUENCY), "remainder");
+        if ((seconds + 1) % FREQUENCY == 0) {
+            Log.d(String.valueOf(seconds), "second");
+        }
 
         /**
          * Update the second storage every second
@@ -472,9 +474,7 @@ public class DataService extends Service {
             isSend = false;
         }
 
-        if (seconds % FREQUENCY == 0 && seconds != 0 && !isSend) {
-            Log.d(String.valueOf(counter),"CounterIn20");
-
+        if ((seconds + 1) % FREQUENCY == 0 && seconds != 0 && !isSend) {
             /**
              * Execute the Async task to send out the HTTP request
              */

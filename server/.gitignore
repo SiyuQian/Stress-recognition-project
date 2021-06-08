@@ -108,3 +108,4 @@ mysql/
 
 # static files for nginx
 staticfiles/
+server/web/demoapp/static/datasets/**

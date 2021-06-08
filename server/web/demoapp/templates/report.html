@@ -1,6 +1,6 @@
 {% load static %}
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.2.0/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.3.2/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.0.1/chartjs-plugin-annotation.min.js"></script>
 
 <div class="container pt-5">
@@ -97,6 +97,14 @@
                 data: {{ data | safe }},
                 borderColor: "#1EAEDB",
                 backgroundColor: "#1EAEDB0D",
+                yAxisID: 'y',
+            },
+            {
+                label: 'Heart Rate',
+                data: {{ hr | safe }},
+                borderColor: "#FF6384",
+                backgroundColor: "#FF638424",
+                yAxisID: 'y1',
             }
         ],
         labels: {{ labels | safe }}
@@ -112,6 +120,23 @@
                 drawTime: "afterDatasetsDraw",
                 annotations: annotations
             }
+        },
+        scales: {
+            y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+
+                // grid line settings
+                grid: {
+                drawOnChartArea: false, // only want the grid lines for one axis to show up
+                },
+            },
         }
       }
     };

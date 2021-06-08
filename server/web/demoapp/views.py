@@ -3,6 +3,7 @@ from . import tasks
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from demoapp.models import Request, Response, Uuid
+from django.db import transaction
 from django.db.models import Avg
 from demoapp.utils import validate_http_request_method, create_json_response, normalize_data, round_floats, get_time_diff, generate_csv
 import neurokit2 as nk
@@ -62,17 +63,19 @@ def uuid_index(request):
 @csrf_exempt
 def stress_index(request):
     # success HTTP status code as default value
-    status_code = 200
-    sample_rate = 50
-    mode = 'hrv'
-    diff = 0
-    status = 'success'
-    message = ''
-    dataframe = None
-    hr_threshold = 1.05
-    base_data_length = 21
-    hrv_threshold = 1.09
-    data = {}
+    status_code         = 200
+    sample_rate         = 50
+    mode                = 'hrv'
+    diff                = 0
+    message             = ''
+    dataframe           = None
+    hr_threshold        = 1.05
+    base_data_length    = 21
+    hrv_threshold       = 1.09
+    status              = 'success'
+    status_basic        = 'success'
+    status_sliding      = 'success'
+    data                = {}
     
     if validate_http_request_method(request, 'POST', True) == False:
         return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles POST request.')
@@ -84,13 +87,18 @@ def stress_index(request):
         # Convert the json into a dataframe
         body = json.loads(body_unicode)
 
-        # Store the request into Mysql
-        request_model = Request()
-        request_model.request_body = body
-        request_model.save()
-
         # Convert the json into a dataframe for further processing
         dataframe = pd.DataFrame.from_dict(body)
+
+        request_model = Request()
+        request_model.device = dataframe['Device'].iloc[0]
+        request_model.hr = round(dataframe['HR'].astype(int).mean(axis=0), 2)
+        request_model.time = 0
+        request_model.timedate = 0
+        request_model.uuid = dataframe['uuid'].iloc[0]
+        request_model.ppg = round(dataframe['PPG'].astype(float).mean(axis=0), 2)
+        request_model.save()
+
     except Exception as e:
         return create_json_response(500, 'error', data = { 'raw_request_body': request.data }, message = str(e))
 
@@ -120,7 +128,6 @@ def stress_index(request):
         if diff >= hr_threshold  :
             status = 'warning'
             message = 'HRV RMSSD has been changed significantly. You probably under stress.'
-
 
         data = {
             'mode': mode,
@@ -169,11 +176,25 @@ def stress_index(request):
 
         # compare the mean value with recent request
         if filtered_response.count() > base_data_length :
+            # Method: Comparing with Base Line
             # extract the recent mean
             if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_mean and hr_mean > base_hr_mean * hr_threshold:
-                status = 'warning'
+                status = 'basic_warning'
+                status_basic = 'basic_warning'
                 message = 'HRV RMSSD has been changed significantly. You probably under stress.'
 
+            sliding_window_size = base_data_length
+            sliding_window_entry = filtered_response.count() - base_data_length
+
+            hrv_rmssd_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('hrv_rmssd')).values())[0]
+            hr_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('mean')).values())[0]
+            
+            # Method: Sliding window
+            if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_sliding_window_mean and hr_mean > hr_sliding_window_mean * hr_threshold:
+                status = 'sliding_warning'
+                status_sliding = 'sliding_warning'
+                message = 'HRV RMSSD has been changed significantly. You probably under stress.'
+        
         data = {
             'mode': mode,
             'device': device_code,
@@ -192,7 +213,8 @@ def stress_index(request):
     response_model.device_code = device_code
     response_model.uuid = uuid
     response_model.mode = mode
-    response_model.status = status
+    response_model.status_basic = status_basic
+    response_model.status_sliding = status_sliding
     response_model.hr_mean = mean_value
     response_model.hrv_pnn50 = parsed['HRV_pNN50']['0']
     response_model.hrv_rmssd = parsed['HRV_RMSSD']['0']
@@ -203,7 +225,7 @@ def stress_index(request):
 
 
 @csrf_exempt
-def generate_image_index(request):
+def report_index(request):
     if validate_http_request_method(request, 'GET', True) == False :
         return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles GET request.')
     
@@ -245,7 +267,7 @@ def generate_image_index(request):
             rows[current_row_number]['minute'] = row_number
 
             # Form detected point
-            if rows[current_row_number]['status'] == 'warning':
+            if rows[current_row_number]['status_basic'] == 'warning':
                 detected_stress_x.append(rows[current_row_number]['minute'])
                 detected_stress_y.append(rows[current_row_number]['hrv_rmssd'])
             
@@ -270,6 +292,7 @@ def generate_image_index(request):
         'end': end,
         'experiment_length': experiment_length,
         'data': df['hrv_rmssd'].tolist(),
+        'hr': df['hr_mean'].tolist(),
         'labels': df['minute'].tolist(),
         'detected_stress_x': detected_stress_x,
         'detected_stress_y': detected_stress_y

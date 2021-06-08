@@ -9,5 +9,5 @@ urlpatterns = [
 	path('', views.index),
     path('api/v1/stress', views.stress_index, name="stress_index"),
     path('api/v1/uuid', views.uuid_index, name="uuid_index"),
-    path('generate', views.generate_image_index, name="generate_image_index"),
+    path('report', views.report_index, name="report_index"),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
