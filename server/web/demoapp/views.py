@@ -233,6 +233,8 @@ def report_index(request):
     # device_code, uuid
     device_code = request.GET.get('device_code')
     uuid = request.GET.get('uuid')
+    x_axis_start = int(request.GET.get('x-axis-start', "1"))
+    x_axis_end = int(request.GET.get('x-axis-end', "1"))
 
     start = ''
     end = ''
@@ -291,9 +293,9 @@ def report_index(request):
         'start': start,
         'end': end,
         'experiment_length': experiment_length,
-        'data': df['hrv_rmssd'].tolist(),
-        'hr': df['hr_mean'].tolist(),
-        'labels': df['minute'].tolist(),
+        'data': df['hrv_rmssd'].tolist()[x_axis_start:x_axis_end],
+        'hr': df['hr_mean'].tolist()[x_axis_start:x_axis_end],
+        'labels': df['minute'].tolist()[x_axis_start:x_axis_end],
         'detected_stress_x': detected_stress_x,
         'detected_stress_y': detected_stress_y
     })

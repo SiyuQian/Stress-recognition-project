@@ -7,10 +7,10 @@
     <h1>Result</h1>
 
     {% if records == 0 %}
-        <strong>The experiment does not exist in the current database.</strong>
+        <strong>The test does not exist in the current database.</strong>
     {% else %}
         <div class="pb-3">
-            <h2>Experiment Info</h2>
+            <h2>Test Info</h2>
             <ul>
                 <li><b>Device Code:</b>&nbsp;{{ device_code }}</li>
                 <li><b>UUID:</b>&nbsp; {{ uuid }}</li>
@@ -21,6 +21,26 @@
         </div>
 
         <h2>Content</h2>
+            <h4>Change the x-axis range</h4>
+            <div class="row">
+                <div class="col-4">
+                    <form method="get" action="/report">
+                        <div class="form-group">
+                            <label for="pagerStart">Min x-axis Value</label>
+                            <input type="number" class="form-control" id="pagerStart" name="x-axis-start" aria-describedby="pagerStart" placeholder="Enter MIN x-axis value" value="1">
+                            <small class="form-text text-muted">The MIN value for the x-axis</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="pagerEnd">Max x-axis Value</label>
+                            <input type="number" class="form-control" id="pagerEnd" name="x-axis-end" aria-describedby="pagerEnd" placeholder="Enter MAX x-axis value" value="{{ records }}">
+                            <small class="form-text text-muted">The MAX value for the x-axis</small>
+                        </div>
+                        <input type="hidden" name="uuid" value="{{ uuid }}" />
+                        <input type="hidden" name="device_code" value="{{ device_code }}" />
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
             <div>
                 <h4>RMSSD vs Minute Line Chart</h4>
                 <canvas id="line-chart"></canvas>
@@ -37,6 +57,25 @@
                 <li><b>E:</b> End</li>
             </ul>
 
+            <form method="post" action="/report/label/add" style="border:1px dashed black; padding: 20px">
+                <h4>Add event label to the chart</h4>
+                <div class="form-group">
+                    <label for="labelShortHand">Short Hand for Label</label>
+                    <input type="text" class="form-control" id="labelShortHand" name="label_short_hand" aria-describedby="labelShortHand" placeholder="Enter short hand for the label event">
+                    <small class="form-text text-muted">The short hand for the label event</small>
+                </div>
+                <div class="form-group">
+                    <label for="eventLabelName">Event label name</label>
+                    <input type="text" class="form-control" id="eventLabelName" name="event_label_name" aria-describedby="eventLabelName" placeholder="Enter short hand for the label event">
+                    <small class="form-text text-muted">The full description of the event label</small>
+                </div>
+                <div class="form-group">
+                    <label for="eventLabelValue">Event label value</label>
+                    <input type="text" class="form-control" id="eventLabelValue" name="event_label_value" aria-describedby="eventLabelValue" placeholder="Enter the value of the event">
+                    <small class="form-text text-muted">The x-axis value of the event label</small>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
 
             <div>
                 <li>Accuracy: <strong>77%</strong> (21 detected / 27 points)</li>
@@ -44,7 +83,7 @@
             
             <div class="pt-5 pb-5">
                 <h2>Additional</h2>
-                Download the experiment data: <a href="{% static "datasets/"|add:device_code|add:"/"|add:uuid|add:"/response.csv" %}" download="response.csv">Click here</a>
+                Download the test data: <a href="{% static "datasets/"|add:device_code|add:"/"|add:uuid|add:"/response.csv" %}" download="response.csv">Click here</a>
             </div>
     {% endif %}
 </div>
