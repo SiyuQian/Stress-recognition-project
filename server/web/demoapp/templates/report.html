@@ -27,7 +27,7 @@
                     <form method="get" action="/report">
                         <div class="form-group">
                             <label for="pagerStart">Min x-axis Value</label>
-                            <input type="number" class="form-control" id="pagerStart" name="x-axis-start" aria-describedby="pagerStart" placeholder="Enter MIN x-axis value" value="1">
+                            <input type="number" class="form-control" id="pagerStart" name="x-axis-start" aria-describedby="pagerStart" placeholder="Enter MIN x-axis value" value="0">
                             <small class="form-text text-muted">The MIN value for the x-axis</small>
                         </div>
                         <div class="form-group">
@@ -42,19 +42,14 @@
                 </div>
             </div>
             <div>
-                <h4>RMSSD vs Minute Line Chart</h4>
+                <h4>RMSSD vs Row Number Line Chart</h4>
                 <canvas id="line-chart"></canvas>
             </div>
 
             <ul class="pt-3">
-                <li><b>R:</b> Resting</li>
-                <li><b>ER:</b> End Resting</li>
-                <li><b>GP:</b> Game Prepare</li>
-                <li><b>GS:</b> Game Start</li>
-                <li><b>S:</b> Stress event</li>
-                <li><b>EG:</b> End Game</li>
-                <li><b>WV:</b> Watch Horror Video</li>
-                <li><b>E:</b> End</li>
+                {% for label in stress_labels %}
+                    <li><b>{{ label.short_hand }}: </b>{{ label.name }}</li>
+                {% endfor %}
             </ul>
 
             <form method="post" action="/report/label/add" style="border:1px dashed black; padding: 20px">
@@ -74,11 +69,19 @@
                     <input type="text" class="form-control" id="eventLabelValue" name="event_label_value" aria-describedby="eventLabelValue" placeholder="Enter the value of the event">
                     <small class="form-text text-muted">The x-axis value of the event label</small>
                 </div>
+                <input type="hidden" name="uuid" value="{{ uuid }}" />
+                <input type="hidden" name="device_code" value="{{ device_code }}" />
                 <button type="submit" class="btn btn-primary">Submit</button>
             </form>
 
             <div>
-                <li>Accuracy: <strong>77%</strong> (21 detected / 27 points)</li>
+                <h4>PPG vs Row Number Line Chart</h4>
+                <canvas id="ppg-line-chart"></canvas>
+            </div>
+
+            <div>
+                <h2>Summary</h2>
+                <p>For the current test, there are <b>{{ detected_stress_x | length }}</b> stress event detected by the application, and there are <b>{{ event_labels_value | length }} manually</b> labeled stress event in total.</p>
             </div>
             
             <div class="pt-5 pb-5">
@@ -89,10 +92,12 @@
 </div>
 
 <script>
-    var stressEvent = ["R", "ER", "GP", "GS", "S", "S", "S", "S", "S", "S", "S", "S", "S", "EG", "GP", "SG", "S", "S", "S", "S", "S", "S", "S", "S", "EG", "WV", "E"];
-    var stressTimeLabel = [1, 20, 40, 44, 49, 55, 58, 61, 64, 66, 68, 70, 76, 78, 79, 82, 88, 90, 93, 95, 98, 103, 115, 118, 120, 129, 138];
-    var detectedStressX = {{ detected_stress_x | safe }};
-    var detectedStressY = {{ detected_stress_y | safe }}
+    var stressEvent = {{ event_labels_short_hand | safe }};
+    var stressTimeLabel = {{ event_labels_value | safe }};
+    var detectedStressXBasic = {{ detected_stress_x_basic | safe }};
+    var detectedStressYBasic = {{ detected_stress_y_basic | safe }};
+    var detectedStressXSliding = {{ detected_stress_x_sliding | safe }};
+    var detectedStressYSliding = {{ detected_stress_y_sliding | safe }};
 
     var annotations = stressTimeLabel.map(function(timeLabel, index) {
         return {
@@ -111,17 +116,33 @@
         }
     });
 
-    detectedStressX.map(function(point, index) {
+    detectedStressXBasic.map(function(point, index) {
         var annotat = {
           type: 'point',
           id: 'dp' + index, 
           scaleID: 'detected-point',
           xValue: point,
-          yValue: detectedStressY[index],
+          yValue: detectedStressYBasic[index],
           borderWidth: 2,
           radius: 5,
           display: true,
           backgroundColor: 'rgba(255, 99, 132, 0.25)'
+        };
+    
+        annotations.push(annotat);
+    });
+
+    detectedStressXSliding.map(function(point, index) {
+        var annotat = {
+          type: 'point',
+          id: 'sdp' + index, 
+          scaleID: 'detected-sliding-point',
+          xValue: point,
+          yValue: detectedStressYSliding[index],
+          borderWidth: 1,
+          radius: 5,
+          display: true,
+          backgroundColor: 'rgb(216, 215, 250)'
         };
     
         annotations.push(annotat);
@@ -153,7 +174,7 @@
         plugins: {
             title: {
                 display: true,
-                text: 'RMSSD vs Minute',
+                text: 'RMSSD vs Row Number',
             },
             annotation: {
                 drawTime: "afterDatasetsDraw",
