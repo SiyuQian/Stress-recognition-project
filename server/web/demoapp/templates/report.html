@@ -74,14 +74,19 @@
                 <button type="submit" class="btn btn-primary">Submit</button>
             </form>
 
-            <div>
-                <h4>PPG vs Row Number Line Chart</h4>
-                <canvas id="ppg-line-chart"></canvas>
+            <div class="pb-5 pt-2">
+                <h2>Summary</h2>
+                <p>For the current test:</p>
+                <ul>
+                    <li>There are <b>{{ detected_stress_x_basic | length }}</b> stress event detected by <strong class="text-capitalize">stress detection algorithm</strong></li>
+                    <li>There are <b>{{ detected_stress_x_sliding | length }}</b> stress event detected by <strong class="text-capitalize">sliding window algorithm</strong></li>
+                    <li>There are <b>{{ event_labels_value | length }}</b> stress event labeled <b>manually</b></li>
+                </ul>
             </div>
 
             <div>
-                <h2>Summary</h2>
-                <p>For the current test, there are <b>{{ detected_stress_x | length }}</b> stress event detected by the application, and there are <b>{{ event_labels_value | length }} manually</b> labeled stress event in total.</p>
+                <h4>PPG vs Row Number Line Chart</h4>
+                <canvas id="ppg-line-chart"></canvas>
             </div>
             
             <div class="pt-5 pb-5">
@@ -200,9 +205,65 @@
         }
       }
     };
+
+    var ppgConfig = {
+      type: 'line',
+      data: {
+        datasets: [
+            {
+                label: 'PPG',
+                data: {{ ppg_data | safe }},
+                borderColor: "#1EAEDB",
+                backgroundColor: "#1EAEDB0D",
+                yAxisID: 'y',
+            },
+            {
+                label: 'Heart Rate',
+                data: {{ hr | safe }},
+                borderColor: "#FF6384",
+                backgroundColor: "#FF638424",
+                yAxisID: 'y1',
+            }
+        ],
+        labels: {{ labels | safe }}
+      },
+      options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'PPG Raw Data vs Heart Rate vs Row Number',
+            },
+            annotation: {
+                drawTime: "afterDatasetsDraw"
+            }
+        },
+        scales: {
+            y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+
+                // grid line settings
+                grid: {
+                drawOnChartArea: false, // only want the grid lines for one axis to show up
+                },
+            },
+        }
+      }
+    };
     
     window.onload = function() {
         var ctx = document.getElementById('line-chart').getContext('2d');
         window.lineChart = new Chart(ctx, config);
+
+
+        var ctx1 = document.getElementById('ppg-line-chart').getContext('2d');
+        window.ppgLineChart = new Chart(ctx1, ppgConfig);
     };
 </script>
