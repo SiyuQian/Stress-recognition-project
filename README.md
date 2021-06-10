@@ -1,7 +1,7 @@
 # Stress detection project 🏰
 This project includes an Android application and a stress recognition API combination to provide a solution using mobile and wearable devices to detect the participants' stress level.
 
-** Background **
+**Background**
 
 Phishing is recognised as a serious threat to organisations and individuals. While there have been significant technical advances in blocking phishing attacks, people remain the last line of defence and there is a gap in understanding the factors that cause humans to be vulnerable. To study the underlying causes for phishing attacks, we are going to conduct phishing experiments on the campus. 
 
@@ -16,13 +16,16 @@ We want to investigate the feasibility to use the smartphone camera to collect m
 With these data at hand, we want to study whether the user’s cognitive state (emotional state or stress level) would have an impact on users behaviour, and thus influence their detection accuracy and phishing susceptibility.
 
 
-Features
+**Features**
 
-
-An Android application and a Stress recognition API combination to practice the research about phishing avoidance with general devices. (by processing the PPG data sent from the client-side)
+* Generate METADATA and line chart for the recorded data automatically
+* Real time calculation of HRV based on PPG data
+* Multiple algorithms for detecting stress:
+   * Stress Detection Algorithm
+   * Sliding Window Algorithm
 
 ## Workflow Chart
-![workflow](https://user-images.githubusercontent.com/73207848/112559805-a1458c80-8e36-11eb-920c-f79bccb1024b.png)
+![workflow](https://user-images.githubusercontent.com/24470452/121450352-afe02080-c9ef-11eb-8a16-e93629e50063.png)
 
 ## Terminologies
 PPG: Photoplethysmography (PPG) is a simple optical technique used to detect volumetric changes in blood in the peripheral circulation. It is a low-cost and non-invasive method that makes measurements at the surface of the skin. The technique provides valuable information related to our cardiovascular system. (From [News Medical](https://www.news-medical.net/health/Photoplethysmography-(PPG).aspx#:~:text=Photoplethysmography%20(PPG)%20is%20a%20simple,related%20to%20our%20cardiovascular%20system.))[2]
