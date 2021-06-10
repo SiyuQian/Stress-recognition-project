@@ -66,7 +66,7 @@ public class DataService extends Service {
         PPG3_AMBIENT1, UNKNOWN;
     }
 
-    public static final String BaseUrl ="http://192.168.1.75/api/v1";
+    public static final String BaseUrl ="http://192.168.1.79/api/v1";
 
     /**
      * The frequency of sending the HTTP requests / seconds
@@ -488,8 +488,14 @@ public class DataService extends Service {
                 @Override
                 public void onErrorResponse(VolleyError error) {
                     Log.d("RESP", "onResponse: " + error);
-                    if(error.getMessage().contains("stress")){
-                        errorMessage ="You are under stress";
+                    if(error.getMessage().contains("basic_warning")){
+                        errorMessage ="basic_warning:You are under stress";
+                        Intent intent = new Intent("updatingState");
+                        intent.putExtra("message", errorMessage);
+                        sendBroadcast(intent);
+                    }
+                    else if(error.getMessage().contains("sliding_warning")){
+                        errorMessage ="sliding_warning: You are under stress";
                         Intent intent = new Intent("updatingState");
                         intent.putExtra("message", errorMessage);
                         sendBroadcast(intent);
