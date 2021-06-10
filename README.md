@@ -1,12 +1,33 @@
 # Stress detection project 🏰
-An Android application and a Stress recognition API combination to practice the research about phishing avoidance with general devices.  (by processing the PPG data sent from the client-side)
+This project includes an Android application and a stress recognition API combination to provide a solution using mobile and wearable devices to detect the participants' stress level.
+
+**Background**
+
+Phishing is recognised as a serious threat to organisations and individuals. While there have been significant technical advances in blocking phishing attacks, people remain the last line of defence and there is a gap in understanding the factors that cause humans to be vulnerable. To study the underlying causes for phishing attacks, we are going to conduct phishing experiments on the campus. 
+
+This year, during the first stage, we will run several simulated phishing attacks on all the staff in UoA, and we aimed to find the group of users that are more susceptible to phishing (which will be the ones who fall for the attacks), and investigate deeper into their behaviours and physical/cognitive state on why they fall for phishing attacks.
+
+For the second stage, we planned to conduct a diary study that runs for 1 or 2 weeks and recruit participants from the users who fall for the attack during the first stage.  The participants would be asked to work as usual, but with devices mounted on them (POlar OH1) or on their workplace (smartphone). We will use those devices to collect their physical and biological data such as their heart rate, or PPG, or the environmental data. During the experiment, we want to collect as much information as possible.
+
+Currently, the smartphone is been used as a middleware that collects and stores all the data. It can be connected to a Polar OH1 wristband for collecting their PPG signal (for measuring stress, and HR).
+
+We want to investigate the feasibility to use the smartphone camera to collect more data from the user, for example, using facial emotion recognition technology to find out the users current emotional state (whether he/she is stressed or not, or depressed etc.), or using the TOI technology to capture the heart rate changes via colour changes due to blood flow, or even using an eye-tracking API or technology to record the user’s eye saccade to measure his/her stress level (or current cognitive load). 
+
+With these data at hand, we want to study whether the user’s cognitive state (emotional state or stress level) would have an impact on users behaviour, and thus influence their detection accuracy and phishing susceptibility.
+
+
+**Features**
+
+* Generate METADATA and line chart for the recorded data automatically
+* Real time calculation of HRV based on PPG data
+* Multiple algorithms for detecting stress:
+   * Stress Detection Algorithm
+   * Sliding Window Algorithm
 
 ## Workflow Chart
-![workflow](https://user-images.githubusercontent.com/73207848/112559805-a1458c80-8e36-11eb-920c-f79bccb1024b.png)
+![workflow](https://user-images.githubusercontent.com/24470452/121450352-afe02080-c9ef-11eb-8a16-e93629e50063.png)
 
 ## Terminologies
-Phishing: Phishing is the fraudulent attempt to obtain sensitive information or data, such as usernames, passwords and credit card details or other sensitive details, by impersonating oneself as a trustworthy entity in a digital communication. (From [Wikipedia](https://en.wikipedia.org/wiki/Phishing#:~:text=Phishing%20is%20the%20fraudulent%20attempt,entity%20in%20a%20digital%20communication.))[1]
-  
 PPG: Photoplethysmography (PPG) is a simple optical technique used to detect volumetric changes in blood in the peripheral circulation. It is a low-cost and non-invasive method that makes measurements at the surface of the skin. The technique provides valuable information related to our cardiovascular system. (From [News Medical](https://www.news-medical.net/health/Photoplethysmography-(PPG).aspx#:~:text=Photoplethysmography%20(PPG)%20is%20a%20simple,related%20to%20our%20cardiovascular%20system.))[2]
   
 HRV: Heart rate variability is literally the variance in time between the beats of your heart. (From [Whoop](https://www.whoop.com/thelocker/heart-rate-variability-hrv/#:~:text=Heart%20rate%20variability%20is%20literally,1.15%20seconds%20between%20two%20others.))[3]

@@ -26,6 +26,14 @@ class Response(models.Model):
 	response_body = models.JSONField()
 	created_at = models.DateTimeField(auto_now_add=True)
 
+class EventLabel(models.Model):
+	device_code = models.CharField(max_length=50, default='')
+	uuid = models.CharField(max_length=50, default='')
+	short_hand = models.CharField(max_length=50, default='')
+	name = models.CharField(max_length=50, default='')
+	value = models.CharField(max_length=50, default='')
+	created_at = models.DateTimeField(auto_now_add=True)
+
 class Uuid(models.Model):
 	uuid = models.CharField(unique=True, max_length=50)
 	created_at = models.DateTimeField(auto_now_add=True)

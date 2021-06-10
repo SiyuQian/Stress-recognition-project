@@ -1,0 +1,28 @@
+{% load static %}
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+<div class="container pt-5">
+    <h1>Tests List</h1>
+    <table class="table">
+        <thead>
+            <tr>
+            <th scope="col">#</th>
+            <th scope="col">UUID</th>
+            <th scope="col">Device code</th>
+            <th scope="col">Request Count</th>
+            <th scope="col">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for request in requests %}
+                <tr>
+                    <th scope="row">{{ forloop.counter }}</th>
+                    <td>{{ request.uuid }}</td>
+                    <td>{{ request.device }}</td>
+                    <td>{{ request.dcount }}</td>
+                    <td><a target="_blank" href="/report?uuid={{ request.uuid }}&device_code={{ request.device }}">Go to Report page</a></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
