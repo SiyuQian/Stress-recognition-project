@@ -25,7 +25,7 @@ With these data at hand, we want to study whether the user’s cognitive state (
    * Sliding Window Algorithm
 
 ## Workflow Chart
-![workflow](https://user-images.githubusercontent.com/73207848/112559805-a1458c80-8e36-11eb-920c-f79bccb1024b.png)
+![workflow](https://user-images.githubusercontent.com/24470452/121450352-afe02080-c9ef-11eb-8a16-e93629e50063.png)
 
 ## Terminologies
 PPG: Photoplethysmography (PPG) is a simple optical technique used to detect volumetric changes in blood in the peripheral circulation. It is a low-cost and non-invasive method that makes measurements at the surface of the skin. The technique provides valuable information related to our cardiovascular system. (From [News Medical](https://www.news-medical.net/health/Photoplethysmography-(PPG).aspx#:~:text=Photoplethysmography%20(PPG)%20is%20a%20simple,related%20to%20our%20cardiovascular%20system.))[2]
