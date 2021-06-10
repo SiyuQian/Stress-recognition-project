@@ -6,16 +6,28 @@ from django.views.decorators.csrf import csrf_exempt
 from demoapp.models import Request, Response, Uuid, EventLabel
 from django.db import transaction
 from django.db.models import Avg, Count
-from demoapp.utils import validate_http_request_method, create_json_response, normalize_data, round_floats, get_time_diff, generate_csv
+from demoapp.utils import validate_http_request_method, create_json_response, get_normalized_ppg_data, round_floats, get_time_diff, generate_csv, calculate_hrv, detect_stress, store_response
 import neurokit2 as nk
 import pandas as pd
 import json
 import logging
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
+
+class Constant(object):
+    HTTP_SUCCESS_STATUS_CODE        = 200
+    SAMPLE_RATE                     = 50
+    HRV_MODE                        = 'hrv'
+    HR_MODE                         = 'hr'
+    BASELINE_SIZE                   = 21
+    HR_THRESHOLD                    = 1.05
+    HRV_THRESHOLD                   = 1.09
+    STATUS_SUCCESS                  = 'success'
+    DATA                            = {}
 
 @csrf_exempt
 def index(request):
@@ -23,8 +35,8 @@ def index(request):
 
 @csrf_exempt
 def uuid_index(request):
-    status_code = 200
-    status = 'success'
+    status_code = Constant.HTTP_SUCCESS_STATUS_CODE
+    status = Constant.STATUS_SUCCESS
     message = ''
 
     if validate_http_request_method(request, 'POST', True) == False :
@@ -64,18 +76,18 @@ def uuid_index(request):
 @csrf_exempt
 def stress_index(request):
     # success HTTP status code as default value
-    status_code         = 200
-    sample_rate         = 50
-    mode                = 'hrv'
+    status_code         = Constant.HTTP_SUCCESS_STATUS_CODE
+    sample_rate         = Constant.SAMPLE_RATE
+    mode                = Constant.HRV_MODE
     diff                = 0
     message             = ''
     dataframe           = None
-    hr_threshold        = 1.05
-    base_data_length    = 21
-    hrv_threshold       = 1.09
-    status              = 'success'
-    status_basic        = 'success'
-    status_sliding      = 'success'
+    hr_threshold        = Constant.HR_THRESHOLD
+    base_data_length    = Constant.BASELINE_SIZE
+    hrv_threshold       = Constant.HRV_THRESHOLD
+    status              = Constant.STATUS_SUCCESS
+    status_basic        = Constant.STATUS_SUCCESS
+    status_sliding      = Constant.STATUS_SUCCESS
     data                = {}
     
     if validate_http_request_method(request, 'POST', True) == False:
@@ -144,22 +156,11 @@ def stress_index(request):
         # logger.info(dataframe['PPG'].astype(float).div(1000000).to_numpy())
         # logger.info(type(dataframe['PPG'].astype(float).div(1000000)))
         # logger.info('==================')
-        ppd_std = dataframe['PPG'].astype(float).std(skipna = True)
-        ppg_mean = dataframe['PPG'].astype(float).mean(skipna = True)
-
-        normalized_ppg_data = dataframe['PPG'].astype(float).apply(normalize_data, mean = ppg_mean, std = ppd_std)
-
-        # logger.info(normalized_ppg_data)
-
-        # Clear the noise
-        ppg_clean = nk.ppg_clean(normalized_ppg_data, sampling_rate=sample_rate)
-
-        # Peaks
-        peaks = nk.ppg_findpeaks(ppg_clean, sampling_rate=sample_rate)
+        normalized_ppg_data = get_normalized_ppg_data(dataframe)
 
         # Compute HRV indices
         try:
-            hrv_indices = nk.hrv(peaks, sampling_rate=sample_rate, show=False)
+            hrv_indices = calculate_hrv(normalized_ppg_data, sample_rate)
         except ValueError:
             status = 'error'
             message = 'Please wear the polarOH1 properly.'
@@ -172,30 +173,16 @@ def stress_index(request):
             data['message'] = message
             return create_json_response(status_code, status, data, message = message)
 
+        # Convert HRV output into json format
         result = hrv_indices.to_json()
         parsed = json.loads(result)
 
-        # compare the mean value with recent request
-        if filtered_response.count() > base_data_length :
-            # Method: Comparing with Base Line
-            # extract the recent mean
-            if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_mean and hr_mean > base_hr_mean * hr_threshold:
-                status = 'basic_warning'
-                status_basic = 'basic_warning'
-                message = 'HRV RMSSD has been changed significantly. You probably under stress.'
+        stress_info = detect_stress(filtered_response, base_data_length, parsed, hrv_threshold, hrv_rmssd_mean, hr_mean, base_hr_mean, hr_threshold)
+        status = stress_info['status']
+        status_basic = stress_info['status_basic']
+        status_sliding = stress_info['status_sliding']
+        message = stress_info['message']
 
-            sliding_window_size = base_data_length
-            sliding_window_entry = filtered_response.count() - base_data_length
-
-            hrv_rmssd_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('hrv_rmssd')).values())[0]
-            hr_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('mean')).values())[0]
-            
-            # Method: Sliding window
-            if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_sliding_window_mean and hr_mean > hr_sliding_window_mean * hr_threshold:
-                status = 'sliding_warning'
-                status_sliding = 'sliding_warning'
-                message = 'HRV RMSSD has been changed significantly. You probably under stress.'
-        
         data = {
             'mode': mode,
             'device': device_code,
@@ -207,22 +194,130 @@ def stress_index(request):
     # add message into the data dict
     data['message'] = message
 
-    mean_value = hr_mean
-
     # Store response into Mysql database
-    response_model = Response()
-    response_model.device_code = device_code
-    response_model.uuid = uuid
-    response_model.mode = mode
-    response_model.status_basic = status_basic
-    response_model.status_sliding = status_sliding
-    response_model.hr_mean = mean_value
-    response_model.hrv_pnn50 = parsed['HRV_pNN50']['0']
-    response_model.hrv_rmssd = parsed['HRV_RMSSD']['0']
-    response_model.response_body = data
-    response_model.save()
-
+    store_response(device_code, uuid, mode, status_basic, status_sliding, hr_mean, parsed['HRV_pNN50']['0'], parsed['HRV_RMSSD']['0'], data)
     return create_json_response(status_code, status, data, message = message)
+
+@csrf_exempt
+def process(request):
+    # success HTTP status code as default value
+    status_code         = Constant.HTTP_SUCCESS_STATUS_CODE
+    sample_rate         = Constant.SAMPLE_RATE
+    mode                = Constant.HRV_MODE
+    message             = ''
+    dataframe           = None
+    hr_threshold        = Constant.HR_THRESHOLD
+    base_data_length    = Constant.BASELINE_SIZE
+    hrv_threshold       = Constant.HRV_THRESHOLD
+    status              = Constant.STATUS_SUCCESS
+    status_basic        = Constant.STATUS_SUCCESS
+    status_sliding      = Constant.STATUS_SUCCESS
+    data                = {}
+    secondStorage       = 0
+    isSend              = False
+
+    if validate_http_request_method(request, 'POST', True) == False :
+        return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles POST request.')
+
+    # device_code = request.POST.get('device_code')
+    
+    uuid = request.POST.get('uuid')
+    frequency = int(request.POST.get('frequency'))
+
+    uuid_model = Uuid(uuid = uuid)
+    uuid_model.save()
+
+    ppg_raw_file = request.FILES['ppg_raw']
+
+    decoded_file = ppg_raw_file.read().decode('utf-8').splitlines()
+    reader = csv.DictReader(decoded_file)
+    dataframe = pd.DataFrame()
+
+    for row in reader:
+        device_code = row['Device']
+        dataframe = dataframe.append(row, ignore_index=True)
+ 
+        # Get the second of the time
+        second = int(row['Time'].split(':')[2])
+        
+        if second is not secondStorage:
+            secondStorage = second
+            isSend = False
+
+        # Per frequency to process HRV
+        if (second + 1) % frequency == 0 and not isSend:
+            request_model = Request()
+            request_model.device = dataframe['Device'].iloc[0]
+            request_model.hr = round(dataframe['HR'].astype(int).mean(axis=0), 2)
+            request_model.time = 0
+            request_model.timedate = 0
+            request_model.uuid = uuid
+            request_model.ppg = round(dataframe['PPG'].astype(float).mean(axis=0), 2)
+            request_model.save()
+
+            normalized_ppg_data = get_normalized_ppg_data(dataframe)
+            filtered_response = Response.objects.filter(device_code=device_code, uuid=uuid)
+
+            # Calculate the average hear rate based on HR column
+            hr_mean = round(dataframe['HR'].astype(float).mean(axis=0), 2)
+
+            # Compute HRV indices
+            try:
+                hrv_indices = calculate_hrv(normalized_ppg_data, sample_rate)
+            except ValueError:
+                status = 'error'
+                message = 'Please wear the polarOH1 properly.'
+                data = {
+                    'mode': mode,
+                    'device': device_code,
+                    'uuid': uuid,
+                    'hr_mean': hr_mean
+                }
+                data['message'] = message
+                return create_json_response(status_code, status, data, message = message)
+
+            # Convert HRV output into json format
+            result = hrv_indices.to_json()
+            parsed = json.loads(result)
+            
+            data = {
+                'mode': mode,
+                'device': device_code,
+                'uuid': uuid,
+                'hr_mean': hr_mean,
+                'HRV': parsed
+            }
+
+            # add message into the data dict
+            data['message'] = message
+            
+            if filtered_response.count() > 0:
+                # Calculate the HRV RMSSD value from the base data (first n mins, e.g. 5)
+                hrv_rmssd_mean = list(filtered_response[1:base_data_length].aggregate(Avg('hrv_rmssd')).values())[0]
+                base_hr_mean = list(filtered_response[1:base_data_length].aggregate(Avg('mean')).values())[0]
+
+                stress_info = detect_stress(
+                    filtered_response,
+                    base_data_length,
+                    parsed,
+                    hrv_threshold,
+                    hrv_rmssd_mean,
+                    hr_mean,
+                    base_hr_mean,
+                    hr_threshold
+                )
+                status = stress_info['status']
+                status_basic = stress_info['status_basic']
+                status_sliding = stress_info['status_sliding']
+                message = stress_info['message']
+
+            # Store response into Mysql database
+            store_response(device_code, uuid, mode, status_basic, status_sliding, hr_mean, parsed['HRV_pNN50']['0'], parsed['HRV_RMSSD']['0'], data)
+            # Reset dataframe
+            dataframe = pd.DataFrame()
+            isSend = True
+
+    return redirect('/report?device_code=' + device_code + '&' + 'uuid=' + uuid)
 
 @csrf_exempt
 def tests_index(request):
@@ -251,6 +346,7 @@ def report_index(request):
     row_number = 1
     base_data_length = 21
     outlier_threshold = 3
+    x_axis_labels = []
 
     if not device_code or not uuid:
         return create_json_response(500, 'error', message = 'Bad request! You have to identify device code and uuid to render the page correctly.')
@@ -262,6 +358,9 @@ def report_index(request):
     # Calculate the HRV RMSSD value from the base data (first n mins, e.g. 5)
     hrv_rmssd_mean = list(responses[1:base_data_length].aggregate(Avg('hrv_rmssd')).values())[0]
     records = responses.count()
+
+    if not records:
+        return render(request, 'error.html', {})
 
     if records:
         if x_axis_end == 1:

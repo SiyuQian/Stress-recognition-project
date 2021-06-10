@@ -6,6 +6,9 @@ from django.http import JsonResponse
 import numpy as np
 import csv
 import os
+import neurokit2 as nk
+from demoapp.models import Response
+from django.db.models import Avg
 
 
 import logging
@@ -41,7 +44,7 @@ def create_json_response(status_code, status, data = {}, message = ''):
     logger.info("========================================================================")
     return JsonResponse(body, status = status_code)
 
-def normalize_data(x, mean, std):
+def normalize(x, mean, std):
     return (x - mean) / std
 
 def round_floats(row, float_points = 2):
@@ -53,6 +56,65 @@ def get_time_diff(start, end):
 def mkDir(path):
     if not os.path.isdir(path):
         os.makedirs(path)
+
+def get_normalized_ppg_data(dataframe):
+    ppd_std = dataframe['PPG'].astype(float).std(skipna = True)
+    ppg_mean = dataframe['PPG'].astype(float).mean(skipna = True)
+
+    normalized_ppg_data = dataframe['PPG'].astype(float).apply(normalize, mean = ppg_mean, std = ppd_std)
+    return normalized_ppg_data
+
+def calculate_hrv(normalized_ppg_data, sample_rate):
+    # Clear the noise
+    ppg_clean = nk.ppg_clean(normalized_ppg_data, sampling_rate=sample_rate)
+
+    # Peaks
+    peaks = nk.ppg_findpeaks(ppg_clean, sampling_rate=sample_rate)
+
+    hrv_indices = nk.hrv(peaks, sampling_rate=sample_rate, show=False)
+    return hrv_indices
+
+def detect_stress(filtered_response, base_data_length, parsed, hrv_threshold, hrv_rmssd_mean, hr_mean, base_hr_mean, hr_threshold):
+    stress_info = {
+        'status': 'success',
+        'status_basic': 'success',
+        'status_sliding': 'success',
+        'message': ''
+    }
+     # compare the mean value with recent request
+    if filtered_response.count() > base_data_length :
+        # Method: Comparing with Base Line
+        # extract the recent mean
+        if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_mean and hr_mean > base_hr_mean * hr_threshold:
+            stress_info['status'] = 'basic_warning'
+            stress_info['status_basic'] = 'basic_warning'
+            stress_info['message'] = 'HRV RMSSD has been changed significantly. You probably under stress.'
+
+        sliding_window_size = base_data_length
+        sliding_window_entry = filtered_response.count() - base_data_length
+
+        hrv_rmssd_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('hrv_rmssd')).values())[0]
+        hr_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('mean')).values())[0]
+        
+        # Method: Sliding window
+        if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_sliding_window_mean and hr_mean > hr_sliding_window_mean * hr_threshold:
+            stress_info['status'] = 'sliding_warning'
+            stress_info['status_sliding'] = 'sliding_warning'
+            stress_info['message'] = 'HRV RMSSD has been changed significantly. You probably under stress.'
+    return stress_info
+
+def store_response(device_code, uuid, mode, status_basic, status_sliding, hr_mean, hrv_pnn50, hrv_rmssd, response_body):
+    response_model = Response()
+    response_model.device_code = device_code
+    response_model.uuid = uuid
+    response_model.mode = mode
+    response_model.status_basic = status_basic
+    response_model.status_sliding = status_sliding
+    response_model.hr_mean = hr_mean
+    response_model.hrv_pnn50 = hrv_pnn50
+    response_model.hrv_rmssd = hrv_rmssd
+    response_model.response_body = response_body
+    response_model.save()
 
 def generate_csv(values, device_code, uuid, filename):
     header = values[0].keys()

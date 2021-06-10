@@ -1,1 +1,43 @@
-<h2>Welcome to use the stress recognition API</h2>
+{% load static %}
+{% load i18n %}
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+<div class="container pt-5">
+    <h2>Welcome to use the stress recognition API</h2>
+
+    <div class="row">
+        <div class="col-5">
+            <form method="post" action="/process" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="ppg_raw" name="ppg_raw">
+                    <label class="custom-file-label" for="ppg_raw">Please upload the test data for analyzing:</label>
+                </div>
+
+                <div class="form-group mt-3">
+                    <label for="frequency">Frequency</label>
+                    <input type="number" class="form-control" id="frequency" aria-describedby="frequency" name="frequency" placeholder="Enter frequency" value="5">
+                    <small id="frequency" class="form-text text-muted">The frequency to process the PPG data.</small>
+                </div>
+
+                <div class="form-group mt-3">
+                    <label for="uuid">UUID</label>
+                    <input type="text" class="form-control" id="uuid" aria-describedby="uuid" name="uuid" placeholder="Enter UUID">
+                    <small id="uuid" class="form-text text-muted">The UUID of the current analyze. Generate your UUID by using this <a target="_blank" href="https://www.uuidgenerator.net/">tool</a></small>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3">{% trans 'Submit' %}</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+    // Add the following code if you want the name of the file appear on select
+    $(".custom-file-input").on("change", function() {
+        var fileName = $(this).val().split("\\").pop();
+        $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+    });
+</script>
