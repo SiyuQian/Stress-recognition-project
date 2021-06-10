@@ -5,7 +5,7 @@ from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from demoapp.models import Request, Response, Uuid, EventLabel
 from django.db import transaction
-from django.db.models import Avg
+from django.db.models import Avg, Count
 from demoapp.utils import validate_http_request_method, create_json_response, normalize_data, round_floats, get_time_diff, generate_csv
 import neurokit2 as nk
 import pandas as pd
@@ -223,6 +223,14 @@ def stress_index(request):
     response_model.save()
 
     return create_json_response(status_code, status, data, message = message)
+
+@csrf_exempt
+def tests_index(request):
+    distinct_requests = Request.objects.all().values('device', 'uuid').annotate(dcount=Count('uuid'))
+
+    return render(request, 'list.html', {
+        'requests': distinct_requests
+    })
 
 
 @csrf_exempt
