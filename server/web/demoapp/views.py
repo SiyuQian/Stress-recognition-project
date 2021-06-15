@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from demoapp.models import Request, Response, Uuid, EventLabel
 from django.db import transaction
 from django.db.models import Avg, Count
-from demoapp.utils import validate_http_request_method, create_json_response, get_normalized_ppg_data, round_floats, get_time_diff, generate_csv, calculate_hrv, detect_stress, store_response
+from demoapp.utils import validate_http_request_method, create_json_response, get_base_line_size, get_normalized_ppg_data, round_floats, get_time_diff, generate_csv, calculate_hrv, detect_stress, store_response
 import neurokit2 as nk
 import pandas as pd
 import json
@@ -23,6 +23,7 @@ class Constant(object):
     SAMPLE_RATE                     = 50
     HRV_MODE                        = 'hrv'
     HR_MODE                         = 'hr'
+    FREQUENCY                       = 12
     BASELINE_SIZE                   = 21
     HR_THRESHOLD                    = 1.05
     HRV_THRESHOLD                   = 1.09
@@ -83,7 +84,7 @@ def stress_index(request):
     message             = ''
     dataframe           = None
     hr_threshold        = Constant.HR_THRESHOLD
-    base_data_length    = Constant.BASELINE_SIZE
+    base_data_length    = get_base_line_size(Constant.FREQUENCY)
     hrv_threshold       = Constant.HRV_THRESHOLD
     status              = Constant.STATUS_SUCCESS
     status_basic        = Constant.STATUS_SUCCESS
@@ -207,7 +208,7 @@ def process(request):
     message             = ''
     dataframe           = None
     hr_threshold        = Constant.HR_THRESHOLD
-    base_data_length    = Constant.BASELINE_SIZE
+    base_data_length    = get_base_line_size(Constant.FREQUENCY)
     hrv_threshold       = Constant.HRV_THRESHOLD
     status              = Constant.STATUS_SUCCESS
     status_basic        = Constant.STATUS_SUCCESS

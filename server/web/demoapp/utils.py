@@ -44,8 +44,14 @@ def create_json_response(status_code, status, data = {}, message = ''):
     logger.info("========================================================================")
     return JsonResponse(body, status = status_code)
 
-def normalize(x, mean, std):
+def get_base_line_size(frequency):
+    return (10 * 60) / frequency
+
+def normalize_z_score(x, mean, std):
     return (x - mean) / std
+
+def normalize_min_max(x, min, max):
+    return (x - min) / (max - min)
 
 def round_floats(row, float_points = 2):
     return round(row, float_points)
@@ -58,10 +64,13 @@ def mkDir(path):
         os.makedirs(path)
 
 def get_normalized_ppg_data(dataframe):
-    ppd_std = dataframe['PPG'].astype(float).std(skipna = True)
-    ppg_mean = dataframe['PPG'].astype(float).mean(skipna = True)
+    # ppd_std = dataframe['PPG'].astype(float).std(skipna = True)
+    # ppg_mean = dataframe['PPG'].astype(float).mean(skipna = True)
 
-    normalized_ppg_data = dataframe['PPG'].astype(float).apply(normalize, mean = ppg_mean, std = ppd_std)
+    ppg_min = dataframe['PPG'].astype(float).min(skipna = True)
+    ppg_max = dataframe['PPG'].astype(float).max(skipna = True)
+
+    normalized_ppg_data = dataframe['PPG'].astype(float).apply(normalize_min_max, min = ppg_min, max = ppg_max)
     return normalized_ppg_data
 
 def calculate_hrv(normalized_ppg_data, sample_rate):
