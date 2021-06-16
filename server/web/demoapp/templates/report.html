@@ -41,8 +41,24 @@
                     </form>
                 </div>
             </div>
+            <div class="row">
+                <div class="col-5">
+                    <h4>RMSSD vs Row Number Line Chart</h4>
+                </div>
+                <div class="col-7">
+                    <div class="dropdown mb-3 float-right">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Select Stress point type to display
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                            <a class="dropdown-item" href="/report?uuid={{ uuid }}&device_code={{ device_code }}&filter=all">All</a>
+                            <a class="dropdown-item" href="/report?uuid={{ uuid }}&device_code={{ device_code }}&filter=sd">Stress detection algorithm</a>
+                            <a class="dropdown-item" href="/report?uuid={{ uuid }}&device_code={{ device_code }}&filter=sw">Sliding window algorithm</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div>
-                <h4>RMSSD vs Row Number Line Chart</h4>
                 <canvas id="line-chart"></canvas>
             </div>
 
@@ -88,14 +104,16 @@
                 <h4>PPG vs Row Number Line Chart</h4>
                 <canvas id="ppg-line-chart"></canvas>
             </div>
-            
+
             <div class="pt-5 pb-5">
                 <h2>Additional</h2>
                 Download the test data: <a href="{% static "datasets/"|add:device_code|add:"/"|add:uuid|add:"/response.csv" %}" download="response.csv">Click here</a>
             </div>
     {% endif %}
 </div>
-
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 <script>
     var stressEvent = {{ event_labels_short_hand | safe }};
     var stressTimeLabel = {{ event_labels_value | safe }};
@@ -121,10 +139,11 @@
         }
     });
 
+    {% if request.GET.filter == 'all' or request.GET.filter == 'sd' or request.GET.filter == null %}
     detectedStressXBasic.map(function(point, index) {
         var annotat = {
           type: 'point',
-          id: 'dp' + index, 
+          id: 'dp' + index,
           scaleID: 'detected-point',
           xValue: point,
           yValue: detectedStressYBasic[index],
@@ -133,14 +152,16 @@
           display: true,
           backgroundColor: 'rgba(255, 99, 132, 0.8)'
         };
-    
+
         annotations.push(annotat);
     });
+    {% endif %}
 
+    {% if request.GET.filter == 'all' or request.GET.filter == 'sw' or request.GET.filter == null %}
     detectedStressXSliding.map(function(point, index) {
         var annotat = {
           type: 'point',
-          id: 'sdp' + index, 
+          id: 'sdp' + index,
           scaleID: 'detected-sliding-point',
           xValue: point,
           yValue: detectedStressYSliding[index],
@@ -149,9 +170,10 @@
           display: true,
           backgroundColor: 'rgb(216, 215, 250, 0.8)'
         };
-    
+
         annotations.push(annotat);
     });
+    {% endif %}
 
     var config = {
       type: 'line',
@@ -257,7 +279,7 @@
         }
       }
     };
-    
+
     window.onload = function() {
         var ctx = document.getElementById('line-chart').getContext('2d');
         window.lineChart = new Chart(ctx, config);
