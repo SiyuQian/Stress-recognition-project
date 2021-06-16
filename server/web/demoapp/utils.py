@@ -7,7 +7,7 @@ import numpy as np
 import csv
 import os
 import neurokit2 as nk
-from demoapp.models import Response
+from demoapp.models import Response, Job
 from django.db.models import Avg
 
 
@@ -104,7 +104,7 @@ def detect_stress(filtered_response, base_data_length, parsed, hrv_threshold, hr
 
         hrv_rmssd_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('hrv_rmssd')).values())[0]
         hr_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('mean')).values())[0]
-        
+
         # Method: Sliding window
         if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_sliding_window_mean and hr_mean > hr_sliding_window_mean * hr_threshold:
             stress_info['status'] = 'sliding_warning'
@@ -124,6 +124,19 @@ def store_response(device_code, uuid, mode, status_basic, status_sliding, hr_mea
     response_model.hrv_rmssd = hrv_rmssd
     response_model.response_body = response_body
     response_model.save()
+
+def create_job(uuid, device_code, frequency, hr_threshold, hrv_threshold, baseline_size):
+    if (Job.objects.filter(uuid=uuid, device=device_code).count() < 1) :
+        logger.info('Creating job ...')
+        job_model = Job()
+        job_model.device = device_code
+        job_model.uuid = uuid
+        job_model.frequency = frequency
+        job_model.hr_threshold = hr_threshold
+        job_model.hrv_threshold = hrv_threshold
+        job_model.baseline_size = baseline_size
+        job_model.save()
+
 
 def generate_csv(values, device_code, uuid, filename):
     header = values[0].keys()

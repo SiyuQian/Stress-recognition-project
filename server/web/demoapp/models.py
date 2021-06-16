@@ -13,6 +13,15 @@ class Request(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True)
 
 
+class Job(models.Model):
+	device = models.CharField(max_length=50, default='')
+	uuid = models.CharField(max_length=50, default='')
+	frequency = models.IntegerField(default=0)
+	baseline_size = models.IntegerField(default=0)
+	hr_threshold = models.FloatField(default=0.0)
+	hrv_threshold = models.FloatField(default=0.0)
+	created_at= models.DateTimeField(auto_now_add=True)
+
 class Response(models.Model):
 	device_code = models.CharField(max_length=50, default='')
 	uuid = models.CharField(max_length=50, default='')

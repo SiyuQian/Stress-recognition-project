@@ -3,10 +3,10 @@ from . import tasks
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
-from demoapp.models import Request, Response, Uuid, EventLabel
+from demoapp.models import Request, Response, Uuid, EventLabel, Job
 from django.db import transaction
 from django.db.models import Avg, Count
-from demoapp.utils import validate_http_request_method, create_json_response, get_base_line_size, get_normalized_ppg_data, round_floats, get_time_diff, generate_csv, calculate_hrv, detect_stress, store_response
+from demoapp.utils import create_job, validate_http_request_method, create_json_response, get_base_line_size, get_normalized_ppg_data, round_floats, get_time_diff, generate_csv, calculate_hrv, detect_stress, store_response
 import neurokit2 as nk
 import pandas as pd
 import json
@@ -90,7 +90,8 @@ def stress_index(request):
     status_basic        = Constant.STATUS_SUCCESS
     status_sliding      = Constant.STATUS_SUCCESS
     data                = {}
-    
+    isJobCreated        = False
+
     if validate_http_request_method(request, 'POST', True) == False:
         return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles POST request.')
 
@@ -104,14 +105,21 @@ def stress_index(request):
         # Convert the json into a dataframe for further processing
         dataframe = pd.DataFrame.from_dict(body)
 
+        device_code = dataframe['Device'].iloc[0]
+        uuid = dataframe['uuid'].iloc[0]
+
         request_model = Request()
-        request_model.device = dataframe['Device'].iloc[0]
+        request_model.device = device_code
         request_model.hr = round(dataframe['HR'].astype(int).mean(axis=0), 2)
         request_model.time = 0
         request_model.timedate = 0
-        request_model.uuid = dataframe['uuid'].iloc[0]
+        request_model.uuid = uuid
         request_model.ppg = round(dataframe['PPG'].astype(float).mean(axis=0), 2)
         request_model.save()
+
+        if not isJobCreated :
+            create_job(uuid, device_code, Constant.FREQUENCY, hr_threshold, hrv_threshold, base_data_length)
+            isJobCreated = True
 
     except Exception as e:
         return create_json_response(500, 'error', data = { 'raw_request_body': request.data }, message = str(e))
@@ -201,6 +209,9 @@ def stress_index(request):
 
 @csrf_exempt
 def process(request):
+    uuid = request.POST.get('uuid')
+    frequency = int(request.POST.get('frequency'))
+
     # success HTTP status code as default value
     status_code         = Constant.HTTP_SUCCESS_STATUS_CODE
     sample_rate         = Constant.SAMPLE_RATE
@@ -208,7 +219,7 @@ def process(request):
     message             = ''
     dataframe           = None
     hr_threshold        = Constant.HR_THRESHOLD
-    base_data_length    = get_base_line_size(Constant.FREQUENCY)
+    base_data_length    = get_base_line_size(frequency)
     hrv_threshold       = Constant.HRV_THRESHOLD
     status              = Constant.STATUS_SUCCESS
     status_basic        = Constant.STATUS_SUCCESS
@@ -216,15 +227,12 @@ def process(request):
     data                = {}
     secondStorage       = 0
     isSend              = False
+    isJobCreated        = False
 
     if validate_http_request_method(request, 'POST', True) == False :
         return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles POST request.')
 
     # device_code = request.POST.get('device_code')
-    
-    uuid = request.POST.get('uuid')
-    frequency = int(request.POST.get('frequency'))
-
     uuid_model = Uuid(uuid = uuid)
     uuid_model.save()
 
@@ -236,17 +244,23 @@ def process(request):
 
     for row in reader:
         device_code = row['Device']
+        if not isJobCreated :
+            create_job(uuid, device_code, frequency, hr_threshold, hrv_threshold, base_data_length)
+            isJobCreated = True
+
         dataframe = dataframe.append(row, ignore_index=True)
- 
+
         # Get the second of the time
         second = int(row['Time'].split(':')[2])
-        
+
         if second is not secondStorage:
             secondStorage = second
             isSend = False
 
         # Per frequency to process HRV
         if (second + 1) % frequency == 0 and not isSend:
+            logger.info("second")
+            logger.info(second)
             request_model = Request()
             request_model.device = dataframe['Device'].iloc[0]
             request_model.hr = round(dataframe['HR'].astype(int).mean(axis=0), 2)
@@ -280,7 +294,7 @@ def process(request):
             # Convert HRV output into json format
             result = hrv_indices.to_json()
             parsed = json.loads(result)
-            
+
             data = {
                 'mode': mode,
                 'device': device_code,
@@ -291,7 +305,7 @@ def process(request):
 
             # add message into the data dict
             data['message'] = message
-            
+
             if filtered_response.count() > 0:
                 # Calculate the HRV RMSSD value from the base data (first n mins, e.g. 5)
                 hrv_rmssd_mean = list(filtered_response[1:base_data_length].aggregate(Avg('hrv_rmssd')).values())[0]
@@ -333,7 +347,7 @@ def tests_index(request):
 def report_index(request):
     if validate_http_request_method(request, 'GET', True) == False :
         return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles GET request.')
-    
+
     # The API needs two params to display the diagram and information about the experiment
     # device_code, uuid
     device_code = request.GET.get('device_code')
@@ -345,7 +359,8 @@ def report_index(request):
     end = ''
     experiment_length = ''
     row_number = 1
-    base_data_length = 21
+    base_data_length = get_base_line_size(Constant.FREQUENCY)
+    frequency = Constant.FREQUENCY
     outlier_threshold = 3
     x_axis_labels = []
 
@@ -354,6 +369,7 @@ def report_index(request):
 
     responses = Response.objects.filter(device_code=device_code, uuid=uuid)
     requests = Request.objects.filter(device=device_code, uuid=uuid)
+    jobs = Job.objects.filter(device=device_code, uuid=uuid)
     requests_df = pd.DataFrame(requests.values())
 
     # Calculate the HRV RMSSD value from the base data (first n mins, e.g. 5)
@@ -379,12 +395,12 @@ def report_index(request):
         event_labels_value = []
 
         # Preprocess the value
-        
+
         for row in rows:
             current_row_number = row_number-1
             # Data smoothing, Remove outliers
             if float(rows[current_row_number]['hrv_rmssd']) > hrv_rmssd_mean * outlier_threshold:
-                rows[current_row_number]['hrv_rmssd'] = hrv_rmssd_mean 
+                rows[current_row_number]['hrv_rmssd'] = hrv_rmssd_mean
 
             # Add row number column
             rows[current_row_number]['row_number'] = row_number
@@ -393,14 +409,14 @@ def report_index(request):
             if rows[current_row_number]['status_basic'] == 'warning' or rows[current_row_number]['status_basic'] == 'basic_warning':
                 detected_stress_x_basic.append(rows[current_row_number]['row_number'])
                 detected_stress_y_basic.append(rows[current_row_number]['hrv_rmssd'])
-            
+
             # Create detected points generated by sliding window algorithm
             if rows[current_row_number]['status_sliding'] == 'sliding_warning':
                 detected_stress_x_sliding.append(rows[current_row_number]['row_number'])
                 detected_stress_y_sliding.append(rows[current_row_number]['hrv_rmssd'])
-            
+
             row_number+=1
-        
+
         df = pd.DataFrame(rows)
         df['row_number'] = df['row_number'].astype(int)
         df['hrv_rmssd'] = df['hrv_rmssd'].astype(float)
@@ -425,6 +441,10 @@ def report_index(request):
         'device_code': device_code,
         'uuid': uuid,
         'records': records,
+        'frequency': jobs.first().frequency,
+        'hr_threhold': jobs.first().hr_threshold,
+        'baseline_size': jobs.first().baseline_size,
+        'hrv_threshold': jobs.first().hrv_threshold,
         'start': start,
         'end': end,
         'ppg_data': requests_df['ppg'].tolist()[x_axis_start:x_axis_end],
@@ -471,7 +491,7 @@ def report_add_label_index(request):
 # def ml_index(request):
 #     status_code = 200
 #     status = 'success'
-    
+
 
 #     uuid = request.GET.get('uuid')
 #     device_code = request.GET.get('device_code')
@@ -500,9 +520,9 @@ def report_add_label_index(request):
 
 #     # Append stress column into the dataframe by heart rate
 #     dataframe_hrv['stress'] = dataframe_hrv.apply(lambda row: stress_classifier(row), axis=1)
-        
+
 #     logger.info(dataframe_hrv.shape)
-    
+
 #     # 'HRV.HRV_ULF.0', 'HRV.HRV_VLF.0', are removed because all the values are None
 #     selected_X_columns = ['HRV.HRV_S.0',
 #        'HRV.HRV_AI.0', 'HRV.HRV_Ca.0', 'HRV.HRV_Cd.0', 'HRV.HRV_GI.0',
