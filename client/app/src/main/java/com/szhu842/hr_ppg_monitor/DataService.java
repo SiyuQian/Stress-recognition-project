@@ -488,23 +488,23 @@ public class DataService extends Service {
                 @Override
                 public void onErrorResponse(VolleyError error) {
                     Log.d("RESP", "onResponse: " + error);
-                    if(error.getMessage().contains("basic_warning")){
-                        errorMessage ="basic_warning:You are under stress";
-                        Intent intent = new Intent("updatingState");
-                        intent.putExtra("message", errorMessage);
-                        sendBroadcast(intent);
-                    }
-                    else if(error.getMessage().contains("sliding_warning")){
-                        errorMessage ="sliding_warning: You are under stress";
-                        Intent intent = new Intent("updatingState");
-                        intent.putExtra("message", errorMessage);
-                        sendBroadcast(intent);
-                    }
-                    else {
-                        errorMessage ="Please stay relaxed 5 mins and do not move your arm";
-                        Intent intent = new Intent("updatingState");
-                        intent.putExtra("message", errorMessage);
-                        sendBroadcast(intent);
+                    if (error.getMessage() != null) {
+                        if (error.getMessage().contains("basic_warning")) {
+                            errorMessage = "basic_warning:You are under stress";
+                            Intent intent = new Intent("updatingState");
+                            intent.putExtra("message", errorMessage);
+                            sendBroadcast(intent);
+                        } else if (error.getMessage().contains("sliding_warning")) {
+                            errorMessage = "sliding_warning: You are under stress";
+                            Intent intent = new Intent("updatingState");
+                            intent.putExtra("message", errorMessage);
+                            sendBroadcast(intent);
+                        } else {
+                            errorMessage = "Please stay relaxed 5 mins and do not move your arm";
+                            Intent intent = new Intent("updatingState");
+                            intent.putExtra("message", errorMessage);
+                            sendBroadcast(intent);
+                        }
                     }
                 }
             });
