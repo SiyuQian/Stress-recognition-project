@@ -83,7 +83,7 @@ def calculate_hrv(normalized_ppg_data, sample_rate):
     hrv_indices = nk.hrv(peaks, sampling_rate=sample_rate, show=False)
     return hrv_indices
 
-def detect_stress(filtered_response, base_data_length, parsed, hrv_threshold, hrv_rmssd_mean, hr_mean, base_hr_mean, hr_threshold):
+def detect_stress(filtered_response, base_data_length, parsed, hrv_threshold, hrv_rmssd_mean, hr_mean, base_hr_mean, hr_threshold, pnn50_threshold, pnn50_mean):
     stress_info = {
         'status': 'success',
         'status_basic': 'success',
@@ -94,7 +94,7 @@ def detect_stress(filtered_response, base_data_length, parsed, hrv_threshold, hr
     if filtered_response.count() > base_data_length :
         # Method: Comparing with Base Line
         # extract the recent mean
-        if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_mean and hr_mean > base_hr_mean * hr_threshold:
+        if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_mean and hr_mean > base_hr_mean * hr_threshold and parsed['HRV_pNN50']['0'] * pnn50_threshold < pnn50_mean:
             stress_info['status'] = 'basic_warning'
             stress_info['status_basic'] = 'basic_warning'
             stress_info['message'] = 'HRV RMSSD has been changed significantly. You probably under stress.'
@@ -103,10 +103,11 @@ def detect_stress(filtered_response, base_data_length, parsed, hrv_threshold, hr
         sliding_window_entry = filtered_response.count() - base_data_length
 
         hrv_rmssd_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('hrv_rmssd')).values())[0]
-        hr_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('mean')).values())[0]
+        hr_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('hr_mean')).values())[0]
+        pnn50_sliding_window_mean = list(filtered_response[sliding_window_entry:sliding_window_entry + sliding_window_size].aggregate(Avg('hrv_pnn50')).values())[0]
 
         # Method: Sliding window
-        if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_sliding_window_mean and hr_mean > hr_sliding_window_mean * hr_threshold:
+        if parsed['HRV_RMSSD']['0'] * hrv_threshold < hrv_rmssd_sliding_window_mean and hr_mean > hr_sliding_window_mean * hr_threshold and parsed['HRV_pNN50']['0'] * pnn50_threshold < pnn50_sliding_window_mean:
             stress_info['status'] = 'sliding_warning'
             stress_info['status_sliding'] = 'sliding_warning'
             stress_info['message'] = 'HRV RMSSD has been changed significantly. You probably under stress.'

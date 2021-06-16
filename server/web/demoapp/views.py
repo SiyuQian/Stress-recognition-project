@@ -27,6 +27,7 @@ class Constant(object):
     BASELINE_SIZE                   = 21
     HR_THRESHOLD                    = 1.05
     HRV_THRESHOLD                   = 1.09
+    PNN50_THRESHOLD                 = 1.09
     STATUS_SUCCESS                  = 'success'
     DATA                            = {}
 
@@ -86,6 +87,7 @@ def stress_index(request):
     hr_threshold        = Constant.HR_THRESHOLD
     base_data_length    = get_base_line_size(Constant.FREQUENCY)
     hrv_threshold       = Constant.HRV_THRESHOLD
+    pnn50_threshold     = Constant.PNN50_THRESHOLD
     status              = Constant.STATUS_SUCCESS
     status_basic        = Constant.STATUS_SUCCESS
     status_sliding      = Constant.STATUS_SUCCESS
@@ -138,7 +140,14 @@ def stress_index(request):
     hr_mean = round(dataframe['HR'].astype(float).mean(axis=0), 2)
     # Calculate the HRV RMSSD value from the base data (first n mins, e.g. 5)
     hrv_rmssd_mean = list(filtered_response[1:base_data_length].aggregate(Avg('hrv_rmssd')).values())[0]
-    base_hr_mean = list(filtered_response[1:base_data_length].aggregate(Avg('mean')).values())[0]
+    base_hr_mean = list(filtered_response[1:base_data_length].aggregate(Avg('hr_mean')).values())[0]
+    pnn50_mean = list(filtered_response[1:base_data_length].aggregate(Avg('hrv_pnn50')).values())[0]
+
+    logger.info("================================================")
+    logger.info(hrv_rmssd_mean)
+    logger.info(base_hr_mean)
+    logger.info(pnn50_mean)
+    logger.info("================================================")
 
     if mode == 'hr' :
         # compare the mean value with recent request
@@ -186,7 +195,7 @@ def stress_index(request):
         result = hrv_indices.to_json()
         parsed = json.loads(result)
 
-        stress_info = detect_stress(filtered_response, base_data_length, parsed, hrv_threshold, hrv_rmssd_mean, hr_mean, base_hr_mean, hr_threshold)
+        stress_info = detect_stress(filtered_response, base_data_length, parsed, hrv_threshold, hrv_rmssd_mean, hr_mean, base_hr_mean, hr_threshold, pnn50_threshold, pnn50_mean)
         status = stress_info['status']
         status_basic = stress_info['status_basic']
         status_sliding = stress_info['status_sliding']
@@ -221,6 +230,7 @@ def process(request):
     hr_threshold        = Constant.HR_THRESHOLD
     base_data_length    = get_base_line_size(frequency)
     hrv_threshold       = Constant.HRV_THRESHOLD
+    pnn50_threshold     = Constant.PNN50_THRESHOLD
     status              = Constant.STATUS_SUCCESS
     status_basic        = Constant.STATUS_SUCCESS
     status_sliding      = Constant.STATUS_SUCCESS
@@ -259,8 +269,6 @@ def process(request):
 
         # Per frequency to process HRV
         if (second + 1) % frequency == 0 and not isSend:
-            logger.info("second")
-            logger.info(second)
             request_model = Request()
             request_model.device = dataframe['Device'].iloc[0]
             request_model.hr = round(dataframe['HR'].astype(int).mean(axis=0), 2)
@@ -309,7 +317,14 @@ def process(request):
             if filtered_response.count() > 0:
                 # Calculate the HRV RMSSD value from the base data (first n mins, e.g. 5)
                 hrv_rmssd_mean = list(filtered_response[1:base_data_length].aggregate(Avg('hrv_rmssd')).values())[0]
-                base_hr_mean = list(filtered_response[1:base_data_length].aggregate(Avg('mean')).values())[0]
+                base_hr_mean = list(filtered_response[1:base_data_length].aggregate(Avg('hr_mean')).values())[0]
+                pnn50_mean = list(filtered_response[1:base_data_length].aggregate(Avg('hrv_pnn50')).values())[0]
+
+                logger.info("================================================")
+                logger.info(hrv_rmssd_mean)
+                logger.info(base_hr_mean)
+                logger.info(pnn50_mean)
+                logger.info("================================================")
 
                 stress_info = detect_stress(
                     filtered_response,
@@ -319,7 +334,9 @@ def process(request):
                     hrv_rmssd_mean,
                     hr_mean,
                     base_hr_mean,
-                    hr_threshold
+                    hr_threshold,
+                    pnn50_threshold,
+                    pnn50_mean
                 )
                 status = stress_info['status']
                 status_basic = stress_info['status_basic']
