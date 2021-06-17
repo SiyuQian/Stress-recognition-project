@@ -51,12 +51,21 @@ After downloaded the application on the phone, make sure the permission of all t
 Then, you need to wear the watch(OHR Sensor POL OH1 Plus Blk) and open it, if you do not konw how to wear the watch, please see [this](https://www.polar.com/en/products/accessories/oh1-optical-heart-rate-sensor). 
 Finally, connect the watch to the app that we already downloaded, click the 'start recording' button and it will run successfully. 
 
-## Run the server
-## Getting start with Docker
-This project was bootstrapped with [Docker](https://www.docker.com/get-started).
-## Available Scripts
-In the project directory, you can run:
-### `docker-compose -f docker-compose.yml up` in the server file
+## How to run
+
+## Get Started
+```
+# Step 1
+git clone git@github.com:SiyuQian/Stress-recognition-project.git
+# Step 2
+cd Stress-recognition-project
+# Step 3
+docker-compose -f server/docker-compose.yml up
+```
+
+If you do not have the Docker installed on your computer:
+
+[Docker](https://www.docker.com/get-started)
 
 ## Reference
 1.https://en.wikipedia.org/wiki/Phishing#:~:text=Phishing%20is%20the%20fraudulent%20attempt,entity%20in%20a%20digital%20communication.  
