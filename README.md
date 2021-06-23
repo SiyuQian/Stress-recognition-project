@@ -1,19 +1,11 @@
 # Stress detection project 🏰
-This project includes an Android application and a stress recognition API combination to provide a solution using mobile and wearable devices to detect the participants' stress level.
+This project aimed to us collected PPG signals to calculate the user's stress level. This project includes an Android application and a stress recognition API. The Android App is used to collect sensory data from a specific health tracker (Polar OH 1). The API is responsible for storing the data collected and performing calculations to convert PPG signals to HRV related features (mainly RMSSD and pNN50) for calculating stress levels.
 
 **Background**
 
-Phishing is recognised as a serious threat to organisations and individuals. While there have been significant technical advances in blocking phishing attacks, people remain the last line of defence and there is a gap in understanding the factors that cause humans to be vulnerable. To study the underlying causes for phishing attacks, we are going to conduct phishing experiments on the campus. 
+Phishing is recognised as a serious threat to organisations and individuals. While there have been significant technical advances in blocking phishing attacks, people remain the last line of defence, and there is a gap in understanding the factors that cause humans to be vulnerable. Studies have shown that higher stress level can lead to lower task performance. Hence, it would be reasonable to expect a decrease in the users' phishing detection performance when they are under high stress. Therefore, we aimed to use this project to collect stress level data to assess how users change their stress before and during email checking session. With this data, we can then link stress level to phishing detection performance to partially justify the users phishing susceptibility.
 
-This year, during the first stage, we will run several simulated phishing attacks on all the staff in UoA, and we aimed to find the group of users that are more susceptible to phishing (which will be the ones who fall for the attacks), and investigate deeper into their behaviours and physical/cognitive state on why they fall for phishing attacks.
-
-For the second stage, we planned to conduct a diary study that runs for 1 or 2 weeks and recruit participants from the users who fall for the attack during the first stage.  The participants would be asked to work as usual, but with devices mounted on them (POlar OH1) or on their workplace (smartphone). We will use those devices to collect their physical and biological data such as their heart rate, or PPG, or the environmental data. During the experiment, we want to collect as much information as possible.
-
-Currently, the smartphone is been used as a middleware that collects and stores all the data. It can be connected to a Polar OH1 wristband for collecting their PPG signal (for measuring stress, and HR).
-
-We want to investigate the feasibility to use the smartphone camera to collect more data from the user, for example, using facial emotion recognition technology to find out the users current emotional state (whether he/she is stressed or not, or depressed etc.), or using the TOI technology to capture the heart rate changes via colour changes due to blood flow, or even using an eye-tracking API or technology to record the user’s eye saccade to measure his/her stress level (or current cognitive load). 
-
-With these data at hand, we want to study whether the user’s cognitive state (emotional state or stress level) would have an impact on users behaviour, and thus influence their detection accuracy and phishing susceptibility.
+Currently, the smartphone is been used as a middleware that collects and stores all the data. It can be connected to a Polar OH1 wristband for collecting their PPG signal (for measuring stress, and HR). With these data at hand, we want to study whether the user’s cognitive state (emotional state or stress level) would have an impact on users behaviour, and thus influence their detection accuracy and phishing susceptibility.
 
 
 **Features**
