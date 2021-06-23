@@ -1,12 +1,9 @@
 # Stress detection project 🏰
-This project aimed to us collected PPG signals to calculate the user's stress level. This project includes an Android application and a stress recognition API. The Android App is used to collect sensory data from a specific health tracker (Polar OH 1). The API is responsible for storing the data collected and performing calculations to convert PPG signals to HRV related features (mainly RMSSD and pNN50) for calculating stress levels.
+This project aimed to us collected PPG signals to calculate the user's stress level. This project includes an Android application and a stress recognition API. The Android App is used to collect sensory data from a specific health tracker (Polar OH 1). Currently, the smartphone is been used as a middleware that collects and stores all the data. The API is responsible for storing the data collected and performing calculations to convert PPG signals to HRV related features (mainly RMSSD and pNN50) for calculating stress levels.
 
 **Background**
 
 Phishing is recognised as a serious threat to organisations and individuals. While there have been significant technical advances in blocking phishing attacks, people remain the last line of defence, and there is a gap in understanding the factors that cause humans to be vulnerable. Studies have shown that higher stress level can lead to lower task performance. Hence, it would be reasonable to expect a decrease in the users' phishing detection performance when they are under high stress. Therefore, we aimed to use this project to collect stress level data to assess how users change their stress before and during email checking session. With this data, we can then link stress level to phishing detection performance to partially justify the users phishing susceptibility.
-
-Currently, the smartphone is been used as a middleware that collects and stores all the data. It can be connected to a Polar OH1 wristband for collecting their PPG signal (for measuring stress, and HR). With these data at hand, we want to study whether the user’s cognitive state (emotional state or stress level) would have an impact on users behaviour, and thus influence their detection accuracy and phishing susceptibility.
-
 
 **Features**
 
@@ -26,21 +23,23 @@ HRV: Heart rate variability is literally the variance in time between the beats 
   
 OH1-polar watch: Polar OH1 is an optical heart rate monitor that combines versatility, comfort and simplicity. You can use it both as a standalone device and pair it with various fitness apps, sports watches and smart watches, thanks to Bluetooth® and ANT+ connectivity[6].
 
-
 ## How to detect stress level
 
-We can use some features to detect the stress level of people, like photoplethysmogram (PPG), electrodermal activity (EDA), and skin temperature (SKT). In general, stress is an important factor that can influence the autonomic nervous system (ANS). Heart-rate variability (HRV) is known to be related to ANS activity, so we used an HRV derived from the PPG peak interval. In addition, the peak characteristics of the skin conductance (SC) from EDA and SKT variation can also reflect ANS activity[4].
+There are many ways of detecting users' stress level, such as photoplethysmogram (PPG), electrodermal activity (EDA), and skin temperature (SKT). In general, stress is an important variable that can influence the autonomic nervous system (ANS). Heart-rate variability (HRV) is known to be related to ANS activity, so we used an HRV derived from the PPG peak interval. In addition, the peak characteristics of the skin conductance (SC) from EDA and SKT variation can also reflect ANS activity[4].
 
 Evidence shows that HRV is related to stress level, Daniel et al. found that Significantly higher normalized low-frequency HRV components and breathing rates were measured in the stress condition when compared to the rest condition[5].
 
-For now, we only have limted devices: Some phones(Samsung Galaxy A01 with Android 10 version), Some polar watches(OHR Sensor POL OH1 Plus Blk). Therefore, based on these devices, we can get the heart rate and PPG data from these devices. see the example result(exampleData.csv)
+We are using the following devices for testing our applications: 
+- Phone: Samsung Galaxy A01 (Android 10)
+- Health tracker:Polar OH 1 (wristband)
+Based on these devices, we can get the heart rate and PPG data from these devices. see the example result(exampleData.csv)
 
 Therefore, based on these things, we try to use PPG data from the watch to calculate the HRV data. It is not easy to process PPG data, but we found Neurokit2 kit[7] can be used to get the HRV data by processing PPG data. Then, we can use this HRV data to analyse the stress level.
 
 ## Run the Android App
 Firstly, Open the client in the Android App, and run it on the real android app like our test phone(Samsung Galaxy A01).
 After downloaded the application on the phone, make sure the permission of all things is opened, buletooth of the phone is opened.
-Then, you need to wear the watch(OHR Sensor POL OH1 Plus Blk) and open it, if you do not konw how to wear the watch, please see [this](https://www.polar.com/en/products/accessories/oh1-optical-heart-rate-sensor). 
+Then, you need to wear the wristband (Polar OH 1) and open it, and make sure the phone is paired with the device. If you do not konw how to wear the watch, please see [this](https://www.polar.com/en/products/accessories/oh1-optical-heart-rate-sensor). 
 Finally, connect the watch to the app that we already downloaded, click the 'start recording' button and it will run successfully. 
 
 ## How to run
