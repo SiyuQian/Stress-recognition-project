@@ -30,8 +30,8 @@ There are many ways of detecting users' stress level, such as photoplethysmogram
 Evidence shows that HRV is related to stress level, Daniel et al. found that Significantly higher normalized low-frequency HRV components and breathing rates were measured in the stress condition when compared to the rest condition[5].
 
 We are using the following devices for testing our applications: 
-- Phone: Samsung Galaxy A01 (Android 10)
-- Health tracker:Polar OH 1 (wristband)
+- **Phone**: Samsung Galaxy A01 (Android 10)
+- **Health tracker**: Polar OH 1 (wristband)
 Based on these devices, we can get the heart rate and PPG data from these devices. see the example result(exampleData.csv)
 
 Therefore, based on these things, we try to use PPG data from the watch to calculate the HRV data. It is not easy to process PPG data, but we found Neurokit2 kit[7] can be used to get the HRV data by processing PPG data. Then, we can use this HRV data to analyse the stress level.
