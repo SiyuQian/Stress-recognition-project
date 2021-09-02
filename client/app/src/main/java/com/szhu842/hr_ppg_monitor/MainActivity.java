@@ -13,13 +13,20 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +38,10 @@ public class MainActivity extends AppCompatActivity {
     BluetoothSocket socket = null;
     OutputStream outputStream;
     private boolean isConnected;
+    private File userIDFile = new File(Environment.getExternalStorageDirectory(),"userID");
+
+    private EditText idTextField;
+    private FileWriter writer = null;
 
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
     private static String[] PERMISSIONS_STORAGE = {
@@ -53,6 +64,28 @@ public class MainActivity extends AppCompatActivity {
         connectBtn.setOnClickListener(v -> {
             connect();
         });
+
+        idTextField = findViewById(R.id.IDtextField);
+        idTextField.setHint("please enter your ID");
+
+        if (userIDFile.exists()){
+            String id = "";
+            try {
+                BufferedReader br = new BufferedReader(new FileReader(userIDFile));
+
+
+                id = br.readLine();
+                br.close();
+            }
+            catch (IOException e) {
+                //You'll need to add proper error handling here
+            }
+
+            if (!id.matches("") ){
+                idTextField.setText(id);
+            }
+        }
+
 
     }
 
@@ -80,6 +113,21 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this,"Connecting to device" + b.getAddress(),Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(MainActivity.this, DataCollector.class);
                         intent.putExtra("id", b.getAddress());
+
+                        if (!idTextField.getText().toString().matches("")){
+
+                            try {
+                                writer = new FileWriter(userIDFile);
+                                writer.write(idTextField.getText().toString());
+                                writer.flush();
+                                writer.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                            intent.putExtra("userID",idTextField.getText().toString());
+                        }
+
                         startActivity(intent);
                         break;
                     }
