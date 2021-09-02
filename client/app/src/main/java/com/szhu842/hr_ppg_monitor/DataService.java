@@ -65,8 +65,9 @@ public class DataService extends Service {
     enum OHR_DATA_TYPE {
         PPG3_AMBIENT1, UNKNOWN;
     }
-
-    public static final String BaseUrl ="http://192.168.1.79/api/v1";
+    //server ip: 130.216.217.42
+    public static final String IPaddress = "130.216.217.42";
+    public static final String BaseUrl ="http://"+ IPaddress +"/api/v1";
 
     /**
      * The frequency of sending the HTTP requests / seconds
@@ -388,7 +389,7 @@ public class DataService extends Service {
 
                                     sendBroadcast(intent);
                                      if (sent) {
-                                       writeToCsv();
+//                                       writeToCsv();
                                        postRequest();
 
                                      }
@@ -478,17 +479,21 @@ public class DataService extends Service {
             /**
              * Execute the Async task to send out the HTTP request
              */
+            Log.d("testing", "try to send");
             RequestQueue requestQueue = Volley.newRequestQueue(DataService.this);
             JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(Request.Method.POST, SERVER_URL, httpRequestData, new Response.Listener<JSONArray>() {
                 @Override
                 public void onResponse(JSONArray response) {
                     System.out.println("success" + response);
+                    Log.d("testing","send success");
                 }
             }, new Response.ErrorListener() {
                 @Override
                 public void onErrorResponse(VolleyError error) {
+                    error.printStackTrace();
                     Log.d("RESP", "onResponse: " + error);
                     if (error.getMessage() != null) {
+                        Log.d("testing", error.getMessage());
                         if (error.getMessage().contains("basic_warning")) {
                             errorMessage = "basic_warning:You are under stress";
                             Intent intent = new Intent("updatingState");
@@ -507,6 +512,7 @@ public class DataService extends Service {
                         }
                     }
                 }
+
             });
             requestQueue.add(jsonArrayRequest);
             requestQueue.cancelAll(jsonArrayRequest);
@@ -540,9 +546,10 @@ public class DataService extends Service {
 
                     httpRequestData.put(postData);
                 //}
-//                Log.d(String.valueOf(postData), "postData");
-//                Log.d(String.valueOf(httpRequestData), "httpRequestData");
+//                Log.d("testing", "postData" + String.valueOf(postData));
+//                Log.d("testing", "httpRequestData" + String.valueOf(httpRequestData));
             } catch (JSONException e) {
+                Log.d("jason exception","exception");
                 e.printStackTrace();
             }
         }
