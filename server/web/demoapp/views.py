@@ -42,7 +42,7 @@ def uuid_index(request):
     message = ''
 
     if validate_http_request_method(request, 'POST', True) == False :
-        return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles POST request.')
+        return create_json_response(400, 'error', message = 'Bad request 1! This API endpoint only handles POST request.')
 
     body_unicode = request.body.decode('utf-8')
 
@@ -95,7 +95,7 @@ def stress_index(request):
     isJobCreated        = False
 
     if validate_http_request_method(request, 'POST', True) == False:
-        return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles POST request.')
+        return create_json_response(400, 'error', message = 'Bad request 2! This API endpoint only handles POST request.')
 
     try:
         # Handle the request from the client-end
@@ -109,6 +109,7 @@ def stress_index(request):
 
         device_code = dataframe['Device'].iloc[0]
         uuid = dataframe['uuid'].iloc[0]
+        user_id = dataframe['User_ID'].iloc[0]
 
         request_model = Request()
         request_model.device = device_code
@@ -117,6 +118,7 @@ def stress_index(request):
         request_model.timedate = 0
         request_model.uuid = uuid
         request_model.ppg = round(dataframe['PPG'].astype(float).mean(axis=0), 2)
+        request_model.user_id = user_id
         request_model.save()
 
         if not isJobCreated :
@@ -240,7 +242,7 @@ def process(request):
     isJobCreated        = False
 
     if validate_http_request_method(request, 'POST', True) == False :
-        return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles POST request.')
+        return create_json_response(400, 'error', message = 'Bad request 3! This API endpoint only handles POST request.')
 
     # device_code = request.POST.get('device_code')
     uuid_model = Uuid(uuid = uuid)
@@ -480,7 +482,7 @@ def report_index(request):
 @csrf_exempt
 def report_add_label_index(request):
     if validate_http_request_method(request, 'POST', True) == False :
-        return create_json_response(400, 'error', message = 'Bad request! This API endpoint only handles POST request.')
+        return create_json_response(400, 'error', message = 'Bad request 4! This API endpoint only handles POST request.')
 
     device_code = request.POST.get('device_code')
     uuid = request.POST.get('uuid')

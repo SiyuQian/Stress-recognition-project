@@ -66,7 +66,7 @@ public class DataService extends Service {
         PPG3_AMBIENT1, UNKNOWN;
     }
     //server ip: 130.216.217.42
-    public static final String IPaddress = "130.216.217.42";
+    public static final String IPaddress = "192.168.1.85";
     public static final String BaseUrl ="http://"+ IPaddress +"/api/v1";
 
     /**
@@ -114,6 +114,7 @@ public class DataService extends Service {
 
     private String battery = "";
     private String DEVICE_ID;
+    private String USER_ID;
     private String fileName;
     private String deviceName;
     private String errorMessage ="Stay relaxed 5 mins plz";
@@ -543,6 +544,7 @@ public class DataService extends Service {
                     postData.put("PPG", String.valueOf(ppgData));
                     postData.put("HR", String.valueOf(hr));
                     postData.put("uuid", uu_id);
+                    postData.put("User_ID", USER_ID);
 
                     httpRequestData.put(postData);
                 //}
@@ -743,6 +745,7 @@ public class DataService extends Service {
             String action = intent.getAction();
             if (action.equals("sendingState")) {
                 uu_id= intent.getStringExtra("gotUuid");
+                USER_ID = intent.getStringExtra("user_id");
                 intent.putExtra("uu_id",uu_id);
                 Log.d("uuid",uu_id);
                 if (intent.getBooleanExtra("sent", false)) {

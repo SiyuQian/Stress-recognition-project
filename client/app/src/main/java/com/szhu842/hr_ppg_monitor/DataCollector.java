@@ -47,6 +47,7 @@ public class DataCollector extends AppCompatActivity {
     private String DEVICE_ID;
     private String device_name;
     private static DataCollector instance;
+    private String USER_ID;
     public long startTime;
     private boolean update = false;
     public TextView deviceIDText;
@@ -68,6 +69,7 @@ public class DataCollector extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data_visualisation);
         DEVICE_ID = getIntent().getStringExtra("id");
+        USER_ID = getIntent().getStringExtra("user_id");
         deviceIDText = findViewById(R.id.deviceIDText);
         batteryText = findViewById(R.id.batteryText);
         PPGText = findViewById(R.id.ppgText);
@@ -87,6 +89,7 @@ public class DataCollector extends AppCompatActivity {
                 Intent intent = new Intent("sendingState");
                 intent.putExtra("sent", true);
                 intent.putExtra("gotUuid",uuidAsString);
+                intent.putExtra("user_id", USER_ID);
                 sendBroadcast(intent);
                 DataCollector.this.recordDataBtn.setText("Stop Recording");
             } else {

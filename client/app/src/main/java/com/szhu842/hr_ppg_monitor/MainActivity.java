@@ -125,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
                                 e.printStackTrace();
                             }
 
-                            intent.putExtra("userID",idTextField.getText().toString());
+                            intent.putExtra("user_id",idTextField.getText().toString());
                         }
 
                         startActivity(intent);

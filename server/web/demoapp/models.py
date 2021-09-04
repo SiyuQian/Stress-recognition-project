@@ -11,6 +11,7 @@ class Request(models.Model):
 	time = models.CharField(max_length=50, default='')
 	timedate = models.CharField(max_length=50, default='')
 	created_at = models.DateTimeField(auto_now_add=True)
+	user_id = models.IntegerField(default=0)
 
 
 class Job(models.Model):
